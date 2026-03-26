@@ -17,7 +17,11 @@ interface QdrantSearchResult {
 }
 
 export class QdrantClient {
-  constructor(private baseUrl: string) {}
+  private baseUrl: string
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl
+  }
 
   async ensureCollection(name: string, vectorSize: number = 1536): Promise<void> {
     try {
@@ -107,12 +111,19 @@ export interface EmbeddingProvider {
 
 export class OpenAIEmbeddingProvider implements EmbeddingProvider {
   readonly dimensions = 1536
+  private apiKey: string
+  private apiBase: string
+  private model: string
 
   constructor(
-    private apiKey: string,
-    private apiBase: string = 'https://api.openai.com/v1',
-    private model: string = 'text-embedding-3-small',
-  ) {}
+    apiKey: string,
+    apiBase: string = 'https://api.openai.com/v1',
+    model: string = 'text-embedding-3-small',
+  ) {
+    this.apiKey = apiKey
+    this.apiBase = apiBase
+    this.model = model
+  }
 
   async embed(texts: string[]): Promise<number[][]> {
     const res = await fetch(`${this.apiBase}/embeddings`, {
