@@ -9,8 +9,8 @@ analyticsRouter.get('/tool-analytics', async (c) => {
   const agentId = c.req.query('agentId')
   const projectId = c.req.query('projectId')
 
-  let whereClause = `WHERE created_at >= datetime('now', '-${days} days')`
-  const params: unknown[] = []
+  let whereClause = `WHERE created_at >= datetime('now', '-' || ? || ' days')`
+  const params: unknown[] = [days]
   if (agentId) { whereClause += ' AND agent_id = ?'; params.push(agentId) }
   if (projectId) { whereClause += ' AND project_id = ?'; params.push(projectId) }
 
