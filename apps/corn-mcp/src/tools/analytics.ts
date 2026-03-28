@@ -25,7 +25,7 @@ export function registerAnalyticsTools(server: McpServer, env: McpEnv) {
         if (projectId) params.set('projectId', projectId)
 
         const res = await fetch(
-          `${apiUrl()}/api/metrics/tool-analytics?${params.toString()}`,
+          `${apiUrl()}/api/analytics/tool-analytics?${params.toString()}`,
           { signal: AbortSignal.timeout(10000) },
         )
 

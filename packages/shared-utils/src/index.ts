@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+
 // ─── Logger ─────────────────────────────────────────────
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error'
@@ -86,11 +88,9 @@ export function generateId(prefix = ''): string {
 }
 
 export function hashApiKey(key: string): string {
-  // Use Web Crypto API (available in Node 22+)
+  // Use node:crypto createHash (imported at top)
   const encoder = new TextEncoder()
   const data = encoder.encode(key)
-  // Sync SHA-256 via node:crypto
-  const { createHash } = require('node:crypto') as typeof import('node:crypto')
   return createHash('sha256').update(data).digest('hex')
 }
 

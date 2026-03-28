@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import os from 'node:os'
+import { execFileSync } from 'node:child_process'
 
 export const systemRouter = new Hono()
 
@@ -25,7 +26,6 @@ function getCpuUsage(): { percent: number; cores: number; model: string; loadAvg
 
 function getContainerStats(): Array<{ name: string; status: string; cpu: string; memory: string }> {
   try {
-    const { execFileSync } = require('child_process')
     const psOutput = execFileSync('docker', [
       'ps', '-a', '--filter', 'name=corn-',
       '--format', '{{.Names}}|{{.State}}|{{.Status}}|{{.Image}}',

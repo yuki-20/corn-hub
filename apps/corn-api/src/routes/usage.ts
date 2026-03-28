@@ -9,26 +9,30 @@ usageRouter.get('/', async (c) => {
 
   const totalTokens = await dbGet(
     `SELECT COALESCE(SUM(total_tokens), 0) as total, COUNT(*) as requests
-     FROM usage_logs WHERE created_at >= datetime('now', '-${days} days')`,
+     FROM usage_logs WHERE created_at >= datetime('now', '-' || ? || ' days')`,
+    [days],
   )
 
   const byModel = await dbAll(
     `SELECT model, SUM(prompt_tokens) as prompt_tokens, SUM(completion_tokens) as completion_tokens,
             SUM(total_tokens) as total_tokens, COUNT(*) as requests
-     FROM usage_logs WHERE created_at >= datetime('now', '-${days} days')
+     FROM usage_logs WHERE created_at >= datetime('now', '-' || ? || ' days')
      GROUP BY model ORDER BY total_tokens DESC`,
+    [days],
   )
 
   const byAgent = await dbAll(
     `SELECT agent_id, SUM(total_tokens) as total_tokens, COUNT(*) as requests
-     FROM usage_logs WHERE created_at >= datetime('now', '-${days} days')
+     FROM usage_logs WHERE created_at >= datetime('now', '-' || ? || ' days')
      GROUP BY agent_id ORDER BY total_tokens DESC`,
+    [days],
   )
 
   const daily = await dbAll(
     `SELECT date(created_at) as date, SUM(total_tokens) as tokens, COUNT(*) as requests
-     FROM usage_logs WHERE created_at >= datetime('now', '-${days} days')
+     FROM usage_logs WHERE created_at >= datetime('now', '-' || ? || ' days')
      GROUP BY date(created_at) ORDER BY date DESC`,
+    [days],
   )
 
   return c.json({
