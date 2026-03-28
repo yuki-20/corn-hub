@@ -121,3 +121,35 @@ export const getUsageStats = (days = 30) =>
     byAgent: any[]
     daily: any[]
   }>(`/api/usage?days=${days}`)
+
+// ─── Tool Analytics ─────────────────────────────────────
+export interface ToolAnalytics {
+  summary: {
+    totalCalls: number
+    overallSuccessRate: number
+    estimatedTokensSaved: number
+    totalDataBytes: number
+    activeAgents: number
+  }
+  tools: {
+    tool: string
+    totalCalls: number
+    successRate: number
+    errorCount: number
+    avgLatencyMs: number
+  }[]
+  agents: {
+    agentId: string
+    totalCalls: number
+    successRate: number
+  }[]
+  trend: {
+    day: string
+    calls: number
+    errors: number
+  }[]
+}
+
+export const getToolAnalytics = (days = 30) =>
+  apiFetch<ToolAnalytics>(`/api/analytics/tool-analytics?days=${days}`)
+
