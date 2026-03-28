@@ -1,4 +1,4 @@
-# 🌽 Corn Hub
+# 🌽 CornMCP
 
 **The AI Agent Intelligence Platform — MCP Server + Analytics Dashboard**
 
