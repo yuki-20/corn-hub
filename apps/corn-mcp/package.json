@@ -8,9 +8,9 @@
   },
   "scripts": {
     "dev": "tsx watch src/node.ts",
-    "build": "tsc",
+    "build": "npx tsc",
     "start": "node dist/node.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "npx tsc --noEmit"
   },
   "dependencies": {
     "@corn/shared-types": "workspace:*",

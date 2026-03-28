@@ -116,7 +116,13 @@ importers:
       '@corn/shared-utils':
         specifier: workspace:*
         version: link:../shared-utils
+      sql.js:
+        specifier: ^1.12.0
+        version: 1.14.1
     devDependencies:
+      '@types/sql.js':
+        specifier: ^1.4.10
+        version: 1.4.10
       typescript:
         specifier: ^5.7.0
         version: 5.9.3

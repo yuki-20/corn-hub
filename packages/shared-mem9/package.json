@@ -3,16 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "build": "npx tsc",
+    "typecheck": "npx tsc --noEmit"
   },
   "dependencies": {
-    "@corn/shared-utils": "workspace:*"
+    "@corn/shared-utils": "workspace:*",
+    "sql.js": "^1.12.0"
   },
   "devDependencies": {
+    "@types/sql.js": "^1.4.10",
     "typescript": "^5.7.0"
   }
 }
