@@ -93,7 +93,7 @@ async function run() {
   try {
     await server.connect(transport)
     console.error('🌽 Corn MCP Server running locally via STDIO transport')
-    console.error(`   Embedding: ${process.env['OPENAI_API_BASE'] || 'https://api.openai.com/v1'} (${process.env['MEM9_EMBEDDING_MODEL'] || 'text-embedding-3-small'})`)
+    console.error(`   Embedding: ${process.env['OPENAI_API_BASE'] || 'https://api.voyageai.com/v1'} (${process.env['MEM9_EMBEDDING_MODEL'] || 'voyage-code-3'})`)
   } catch (error) {
     console.error('Fatal error starting Corn MCP Server:', error)
     process.exit(1)
