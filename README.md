@@ -478,6 +478,14 @@ See the [GitHub Releases](https://github.com/yuki-20/corn-hub/releases) page for
 
 ---
 
+## Contributors
+
+| <a href="https://github.com/yuki-20"><img src="https://github.com/yuki-20.png" width="80" style="border-radius:50%"><br>**yuki-20**</a> | <a href="https://github.com/AntiTamper"><img src="https://github.com/AntiTamper.png" width="80" style="border-radius:50%"><br>**AntiTamper**</a> |
+|:---:|:---:|
+| 🏆 Creator & Lead | 🤝 Co-Contributor |
+
+---
+
 ## License
 
 MIT © [yuki-20](https://github.com/yuki-20)
