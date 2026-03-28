@@ -80,12 +80,12 @@ Corn Hub was rewritten from the ground up to eliminate infrastructure bloat:
 Corn Hub supports **Native STDIO Transport**. This means your local IDE runs the MCP server directly as a hyper-fast child process (zero HTTP network latency, zero API keys required).
 
 ### Prerequisites
-1. Node.js 20+
-2. pnpm
+1. Node.js 22+
+2. pnpm 10+
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/yourusername/corn-hub.git
+git clone https://github.com/yuki-20/corn-hub.git
 cd corn-hub
 
 # 2. Install Dependencies & Build
@@ -130,15 +130,24 @@ Run the following in your terminal to register the server globally:
 claude mcp add corn -- node /absolute/path/to/corn-hub/apps/corn-mcp/dist/cli.js
 ```
 
-### Launch the Analytics Dashboard
+### Launch the Analytics Dashboard (Docker)
 Want to see exactly how many tokens you saved and view Quality Assurance reports?
-```bash
-# Windows
-start.cmd up
 
-# Mac/Linux
-./start.sh up
+**Prerequisites:** Docker Desktop running.
+
+```bash
+docker compose -f infra/docker-compose.yml up -d --build
 ```
+
+This starts 5 services:
+| Service | Port | Description |
+|---------|------|-------------|
+| **corn-api** | `:4000` | Dashboard REST API |
+| **corn-mcp** | `:8317` | MCP Gateway (HTTP transport) |
+| **corn-web** | `:3000` | Next.js Dashboard |
+| **corn-qdrant** | `:6333` | Vector database |
+| **corn-watchtower** | — | Auto-updates containers |
+
 Open `http://localhost:3000` to view the live Token Usage & Agent Quality control center.
 
 ---
@@ -156,6 +165,22 @@ This means the path in your MCP config does not match where Corn Hub is installe
 
 ## 📋 Changelog
 
+### v0.1.1 — 2026-03-28
+
+#### 🐛 Bug Fixes
+- **Docker build: missing `shared-mem9`** — `corn-mcp` Dockerfile was missing the `@corn/shared-mem9` workspace package in all build stages
+- **Docker build: broken `.bin` symlinks** — pnpm hoisted mode creates broken per-package `.bin/tsc` symlinks; fixed by removing broken dirs and using `npx tsc`
+- **Docker build: workspace glob mismatch** — Dockerfiles now generate scoped `pnpm-workspace.yaml` to prevent resolution errors  
+- **Docker build: invalid COPY redirect** — replaced `COPY ... 2>/dev/null || true` with proper `RUN cp` in builder stage
+- **Production module resolution** — `shared-types` and `shared-utils` now point `main` to `./dist/index.js` instead of `./src/index.ts`
+
+#### 🔧 Infrastructure
+- All build scripts changed from `tsc` to `npx tsc` for Docker compatibility
+- All three Dockerfiles updated with scoped workspace approach and `.bin` cleanup
+- Full Docker Compose stack verified: Qdrant, corn-api, corn-mcp, corn-web, Watchtower all healthy
+
+---
+
 ### v0.1.0 — 2026-03-28
 
 #### 🐛 Bug Fixes
@@ -170,9 +195,9 @@ This means the path in your MCP config does not match where Corn Hub is installe
 
 #### 🎉 Initial Release
 - **corn-api** — Hono REST API with SQLite (sql.js) serving dashboard data, sessions, quality reports, knowledge, projects, providers, usage, analytics, webhooks, code intel, and system metrics
-- **corn-mcp** — MCP server with 17 tools: memory, knowledge, quality, sessions, code intelligence, analytics, and change awareness — supports Streamable HTTP and STDIO transports
+- **corn-mcp** — MCP server with 18 tools: memory, knowledge, quality, sessions, code intelligence, analytics, and change awareness — supports Streamable HTTP and STDIO transports
 - **corn-web** — Next.js 16 dashboard with real-time health monitoring, activity feed, quality gauges, and quick-connect setup
-- **shared-mem9** — Qdrant vector DB client with OpenAI embedding provider for semantic memory and knowledge search
+- **shared-mem9** — Qdrant vector DB client with local hash-based embedding fallback for semantic memory and knowledge search
 - **shared-types** — Shared TypeScript interfaces for all services
 - **shared-utils** — Logger, error classes, ID generation, and utility functions
 - Docker Compose infrastructure with Qdrant, Nginx, and multi-stage builds
