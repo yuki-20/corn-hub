@@ -192,6 +192,43 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
+-- ── Code Knowledge Graph (AST Engine) ──
+CREATE TABLE IF NOT EXISTS code_symbols (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    file_path TEXT NOT NULL,
+    start_line INTEGER NOT NULL,
+    end_line INTEGER NOT NULL,
+    exported BOOLEAN DEFAULT 0,
+    signature TEXT,
+    doc_comment TEXT,
+    parent_symbol_id TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS code_edges (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    source_symbol_id TEXT NOT NULL REFERENCES code_symbols(id) ON DELETE CASCADE,
+    target_symbol_id TEXT NOT NULL REFERENCES code_symbols(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL,
+    file_path TEXT,
+    line_number INTEGER,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_symbols_project ON code_symbols(project_id);
+CREATE INDEX IF NOT EXISTS idx_symbols_name ON code_symbols(name);
+CREATE INDEX IF NOT EXISTS idx_symbols_file ON code_symbols(file_path);
+CREATE INDEX IF NOT EXISTS idx_symbols_kind ON code_symbols(kind);
+CREATE INDEX IF NOT EXISTS idx_symbols_parent ON code_symbols(parent_symbol_id);
+CREATE INDEX IF NOT EXISTS idx_edges_source ON code_edges(source_symbol_id);
+CREATE INDEX IF NOT EXISTS idx_edges_target ON code_edges(target_symbol_id);
+CREATE INDEX IF NOT EXISTS idx_edges_kind ON code_edges(kind);
+CREATE INDEX IF NOT EXISTS idx_edges_project ON code_edges(project_id);
+
 CREATE INDEX IF NOT EXISTS idx_query_logs_created ON query_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_query_logs_agent ON query_logs(agent_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_quality_reports_project ON quality_reports(project_id, created_at DESC);

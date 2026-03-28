@@ -89,7 +89,7 @@ export default function DashboardPage() {
         <div className={styles.servicesLeft}>
           <h3 className={styles.stripTitle}>Services</h3>
           <div className={styles.servicesRow}>
-            {['qdrant', 'api', 'mcp'].map((svc) => (
+            {['sqlite', 'api', 'mcp'].map((svc) => (
               <ServiceDot key={svc} name={svc} status={svcMap?.[svc] ?? (isLoading ? 'loading' : 'unknown')} />
             ))}
           </div>

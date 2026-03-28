@@ -1,16 +1,19 @@
 import { Hono } from 'hono'
 import { dbAll, dbGet, dbRun } from '../db/client.js'
-import { generateId } from '@corn/shared-utils'
+import { generateId, createLogger } from '@corn/shared-utils'
+import { analyzeProject } from '../services/ast-engine.js'
+
+const logger = createLogger('indexing')
 
 export const indexingRouter = new Hono()
 
-// ── Start Indexing ──
+// ── Start Indexing (triggers native AST analysis) ──
 indexingRouter.post('/:id/index', async (c) => {
   const projectId = c.req.param('id')
   try {
-    const project = await dbGet('SELECT id, git_repo_url FROM projects WHERE id = ?', [projectId])
+    const project = await dbGet('SELECT id, git_repo_url, name FROM projects WHERE id = ?', [projectId])
     if (!project) return c.json({ error: 'Project not found' }, 404)
-    if (!project.git_repo_url) return c.json({ error: 'No git repository URL configured' }, 400)
+    if (!project.git_repo_url) return c.json({ error: 'No git repository URL/path configured' }, 400)
 
     const activeJob = await dbGet(
       `SELECT id FROM index_jobs WHERE project_id = ? AND status IN ('pending', 'cloning', 'analyzing', 'ingesting')`,
@@ -23,11 +26,47 @@ indexingRouter.post('/:id/index', async (c) => {
 
     const jobId = generateId('idx')
     await dbRun(
-      `INSERT INTO index_jobs (id, project_id, branch, status, progress) VALUES (?, ?, ?, 'pending', 0)`,
+      `INSERT INTO index_jobs (id, project_id, branch, status, progress, started_at)
+       VALUES (?, ?, ?, 'analyzing', 0, datetime('now'))`,
       [jobId, projectId, branch],
     )
 
-    return c.json({ jobId, status: 'pending', branch }, 201)
+    // Run AST analysis (in background — don't block the response)
+    const rootDir = project.git_repo_url as string
+    logger.info(`Starting indexing for ${project.name} at ${rootDir}`)
+
+    // Fire and forget the analysis
+    ;(async () => {
+      try {
+        const result = await analyzeProject(projectId, rootDir, async (progress, message) => {
+          await dbRun(
+            `UPDATE index_jobs SET progress = ?, log = ?, status = 'analyzing' WHERE id = ?`,
+            [progress, message, jobId],
+          )
+        })
+
+        await dbRun(
+          `UPDATE index_jobs SET status = 'done', progress = 100,
+           total_files = ?, symbols_found = ?,
+           completed_at = datetime('now'),
+           log = ? WHERE id = ?`,
+          [result.filesAnalyzed, result.symbolsFound,
+           `Completed: ${result.filesAnalyzed} files, ${result.symbolsFound} symbols, ${result.edgesFound} edges`,
+           jobId],
+        )
+
+        logger.info(`Indexing complete for ${project.name}: ${result.symbolsFound} symbols, ${result.edgesFound} edges`)
+      } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error)
+        logger.error(`Indexing failed for ${project.name}:`, errMsg)
+        await dbRun(
+          `UPDATE index_jobs SET status = 'error', error = ?, completed_at = datetime('now') WHERE id = ?`,
+          [errMsg, jobId],
+        )
+      }
+    })()
+
+    return c.json({ jobId, status: 'analyzing', branch, message: `AST analysis started for ${project.name}` }, 201)
   } catch (error) {
     return c.json({ error: String(error) }, 500)
   }
@@ -50,6 +89,7 @@ indexingRouter.get('/:id/index/status', async (c) => {
       progress: job.progress,
       totalFiles: job.total_files,
       symbolsFound: job.symbols_found,
+      log: job.log,
       error: job.error,
       startedAt: job.started_at,
       completedAt: job.completed_at,

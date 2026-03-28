@@ -36,20 +36,28 @@ app.get('/health', async (c) => {
     }
   }
 
-  const qdrantUrl = process.env['QDRANT_URL'] || 'http://localhost:6333'
+  // Check sqlite (our actual vector store — replaced Qdrant)
+  let sqlite: 'ok' | 'error' = 'ok'
+  try {
+    const { dbGet } = await import('./db/client.js')
+    const row = await dbGet('SELECT COUNT(*) as cnt FROM code_symbols')
+    sqlite = row ? 'ok' : 'error'
+  } catch {
+    sqlite = 'error'
+  }
+
   const mcpUrl = process.env['MCP_URL'] || 'http://localhost:8317'
-  const [qdrant, mcp] = await Promise.all([
-    checkService('qdrant', `${qdrantUrl}/healthz`),
-    checkService('mcp', `${mcpUrl}/health`),
-  ])
+  const mcp = await checkService('mcp', `${mcpUrl}/health`)
+
+  const allOk = sqlite === 'ok' && mcp === 'ok'
 
   return c.json({
-    status: qdrant === 'ok' ? 'ok' : 'degraded',
+    status: allOk ? 'ok' : (sqlite === 'ok' ? 'degraded' : 'error'),
     service: 'corn-api',
     version: '0.1.0',
     timestamp: new Date().toISOString(),
     uptime: Math.floor(process.uptime()),
-    services: { qdrant, api: 'ok' as const, mcp },
+    services: { sqlite, api: 'ok' as const, mcp },
   })
 })
 
