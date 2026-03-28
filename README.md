@@ -12,7 +12,7 @@
 
 ---
 
-## What is Corn Hub?
+## What is CornMCP?
 
 Corn Hub is a **Model Context Protocol (MCP) server** and real-time **analytics dashboard** that gives AI coding agents (Antigravity, Cursor, Claude Code, Codex) surgical access to your codebase through 18 specialized tools.
 
