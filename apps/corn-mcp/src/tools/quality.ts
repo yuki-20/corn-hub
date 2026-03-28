@@ -75,6 +75,9 @@ export function registerQualityTools(server: McpServer, env: McpEnv) {
         { name: 'Change Traceability', score: scoreTraceability },
       ]
 
+      // Identify weak dimensions (below 60%)
+      const weakDimensions = dimensions.filter(d => Math.round((d.score / 25) * 100) < 60)
+
       const lines: string[] = []
 
       lines.push(`## ${emoji} Quality Report — Grade ${grade} (${label})`)
@@ -95,16 +98,37 @@ export function registerQualityTools(server: McpServer, env: McpEnv) {
       lines.push('')
       lines.push(`> **Report ID:** \`${reportId}\` · **Agent:** \`${agentId}\`${projectId ? ` · **Project:** \`${projectId}\`` : ''}`)
 
+      // ── QUALITY GATE ENFORCEMENT ──
+      if (!passed) {
+        lines.push('')
+        lines.push(`---`)
+        lines.push(`## 🚫 QUALITY GATE FAILED — DO NOT PROCEED`)
+        lines.push('')
+        lines.push(`**Score ${total}/100 is below the required threshold of 60/100.**`)
+        lines.push('')
+        if (weakDimensions.length > 0) {
+          lines.push(`### Failing Dimensions:`)
+          for (const d of weakDimensions) {
+            lines.push(`- ❌ **${d.name}**: ${d.score}/25 (${Math.round((d.score / 25) * 100)}%)`)
+          }
+          lines.push('')
+        }
+        lines.push(`**MANDATORY:** You MUST stop, fix the failing dimensions above, and resubmit this quality report before continuing with any further work. Do NOT commit, push, or deploy until this gate passes.`)
+      }
+
       return {
         content: [{ type: 'text' as const, text: lines.join('\n') }],
+        isError: !passed,
       }
     },
   )
 
   // ─── Plan Quality ────────────────────────────────────
+  const PLAN_QUALITY_THRESHOLD = 80
+
   server.tool(
     'corn_plan_quality',
-    'Assess the quality of a plan before execution. Scores against 8 criteria: clarity, scope, risks, testing, reversibility, impact, dependencies, timeline.',
+    'Assess the quality of a plan before execution. Scores against 8 criteria: clarity, scope, risks, testing, reversibility, impact, dependencies, timeline. Plans MUST score ≥80% to proceed.',
     {
       plan: z.string().describe('The plan text to assess'),
       projectId: z.string().optional().describe('Project context'),
@@ -113,13 +137,13 @@ export function registerQualityTools(server: McpServer, env: McpEnv) {
       // Simple heuristic scoring — in production, send to LLM for analysis
       const criteria = [
         { name: 'Clarity', icon: '📝', check: plan.length > 50, hint: 'Plan should be detailed (>50 chars)' },
-        { name: 'Scope', icon: '🎯', check: plan.includes('file') || plan.includes('change'), hint: 'Mention files or changes' },
-        { name: 'Risks', icon: '⚡', check: plan.toLowerCase().includes('risk') || plan.toLowerCase().includes('backup'), hint: 'Address risks or backups' },
-        { name: 'Testing', icon: '🧪', check: plan.toLowerCase().includes('test') || plan.toLowerCase().includes('verify'), hint: 'Include test/verify steps' },
-        { name: 'Reversibility', icon: '↩️', check: plan.toLowerCase().includes('revert') || plan.toLowerCase().includes('rollback'), hint: 'Mention rollback strategy' },
-        { name: 'Impact', icon: '💥', check: plan.toLowerCase().includes('impact') || plan.toLowerCase().includes('affect'), hint: 'Describe downstream impact' },
-        { name: 'Dependencies', icon: '🔗', check: plan.toLowerCase().includes('depend') || plan.toLowerCase().includes('require'), hint: 'List dependencies' },
-        { name: 'Timeline', icon: '📅', check: plan.toLowerCase().includes('step') || plan.toLowerCase().includes('phase'), hint: 'Define steps or phases' },
+        { name: 'Scope', icon: '🎯', check: plan.includes('file') || plan.includes('change'), hint: 'Mention specific files or changes to make' },
+        { name: 'Risks', icon: '⚡', check: plan.toLowerCase().includes('risk') || plan.toLowerCase().includes('backup'), hint: 'Address potential risks or backup strategy' },
+        { name: 'Testing', icon: '🧪', check: plan.toLowerCase().includes('test') || plan.toLowerCase().includes('verify'), hint: 'Include test/verification steps' },
+        { name: 'Reversibility', icon: '↩️', check: plan.toLowerCase().includes('revert') || plan.toLowerCase().includes('rollback'), hint: 'Describe rollback strategy if something goes wrong' },
+        { name: 'Impact', icon: '💥', check: plan.toLowerCase().includes('impact') || plan.toLowerCase().includes('affect'), hint: 'Describe what downstream systems or users are affected' },
+        { name: 'Dependencies', icon: '🔗', check: plan.toLowerCase().includes('depend') || plan.toLowerCase().includes('require'), hint: 'List what this plan depends on or requires' },
+        { name: 'Timeline', icon: '📅', check: plan.toLowerCase().includes('step') || plan.toLowerCase().includes('phase'), hint: 'Break into numbered steps or phases' },
       ]
 
       const scored = criteria.map((c) => ({
@@ -130,42 +154,56 @@ export function registerQualityTools(server: McpServer, env: McpEnv) {
       const total = scored.reduce((sum, c) => sum + c.score, 0)
       const maxScore = criteria.length * 10
       const percentage = Math.round((total / maxScore) * 100)
-      const passed = scored.filter((c) => c.score >= 7).length
-      const failed = scored.length - passed
+      const passedCount = scored.filter((c) => c.score >= 7).length
+      const failedCriteria = scored.filter((c) => c.score < 7)
+      const meetsThreshold = percentage >= PLAN_QUALITY_THRESHOLD
       const { grade, emoji, label } = gradeInfo(percentage)
 
       const lines: string[] = []
 
       lines.push(`## 📋 Plan Quality Assessment — Grade ${grade}`)
       lines.push('')
-      lines.push(`| Overall Score | Grade | Criteria Passed | Status |`)
-      lines.push(`|:------------:|:-----:|:---------------:|:------:|`)
-      lines.push(`| **${percentage}%** (${total}/${maxScore}) | ${emoji} **${grade}** — ${label} | ${passed}/${scored.length} | ${percentage >= 60 ? '✅ Ready' : '⚠️ Needs Improvement'} |`)
+      lines.push(`| Overall Score | Grade | Criteria Passed | Threshold | Status |`)
+      lines.push(`|:------------:|:-----:|:---------------:|:---------:|:------:|`)
+      lines.push(`| **${percentage}%** (${total}/${maxScore}) | ${emoji} **${grade}** — ${label} | ${passedCount}/${scored.length} | ${PLAN_QUALITY_THRESHOLD}% | ${meetsThreshold ? '✅ APPROVED' : '🚫 REJECTED'} |`)
       lines.push('')
       lines.push(`### Criteria Breakdown`)
       lines.push('')
       lines.push(`| # | Criteria | Score | Bar | Status | Hint |`)
       lines.push(`|:-:|:---------|------:|:----|:------:|:-----|`)
       scored.forEach((c, i) => {
-        const status = c.score >= 7 ? '✅ Pass' : '⚠️ Weak'
+        const status = c.score >= 7 ? '✅ Pass' : '❌ Fail'
         lines.push(`| ${i + 1} | ${c.icon} ${c.name} | **${c.score}**/10 | \`${scoreBar(c.score, 10, 8)}\` | ${status} | ${c.score >= 7 ? '—' : c.hint} |`)
       })
       lines.push('')
 
-      if (failed > 0) {
-        const weakAreas = scored.filter((c) => c.score < 7).map((c) => `${c.icon} **${c.name}**: ${c.hint}`)
-        lines.push(`### ⚠️ Areas to Improve`)
+      if (!meetsThreshold) {
+        // ── HARD ENFORCEMENT: PLAN REJECTED ──
+        lines.push(`---`)
+        lines.push(`## 🚫 PLAN REJECTED — SCORE ${percentage}% IS BELOW ${PLAN_QUALITY_THRESHOLD}% THRESHOLD`)
         lines.push('')
-        for (const w of weakAreas) {
-          lines.push(`- ${w}`)
+        lines.push(`**Your plan failed ${failedCriteria.length} criteria. You MUST revise it before executing.**`)
+        lines.push('')
+        lines.push(`### ❌ Missing from your plan:`)
+        lines.push('')
+        for (const c of failedCriteria) {
+          lines.push(`${c.icon} **${c.name}** — ${c.hint}`)
         }
         lines.push('')
+        lines.push(`### 📝 Required Action:`)
+        lines.push(`1. **STOP** — Do NOT execute this plan`)
+        lines.push(`2. **REVISE** — Rewrite your plan addressing every ❌ criteria above`)
+        lines.push(`3. **RESUBMIT** — Call \`corn_plan_quality\` again with the improved plan`)
+        lines.push(`4. **ONLY proceed** when the score is ≥${PLAN_QUALITY_THRESHOLD}%`)
+        lines.push('')
+        lines.push(`> 🛑 **This is a mandatory quality gate. Executing a rejected plan violates project quality standards.**`)
+      } else {
+        lines.push(`> ✅ **Plan approved** — meets the ${PLAN_QUALITY_THRESHOLD}% quality threshold. Safe to proceed with execution.`)
       }
-
-      lines.push(`> ${percentage >= 60 ? '✅ Plan meets quality threshold — safe to proceed.' : '⚠️ Plan is below quality threshold (60%). Consider addressing weak areas before execution.'}`)
 
       return {
         content: [{ type: 'text' as const, text: lines.join('\n') }],
+        isError: !meetsThreshold,
       }
     },
   )
