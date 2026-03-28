@@ -586,6 +586,7 @@ Configure in `.agent/workflows/corn-quality-gates.md`.
 ### Prerequisites
 - **Node.js** 22+
 - **pnpm** 10+
+- **Docker** (required for running the full stack)
 
 ### Quick Start
 
