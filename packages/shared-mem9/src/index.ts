@@ -1,8 +1,11 @@
 import { createLogger } from '@corn/shared-utils'
+import initSqlJs, { type Database } from 'sql.js'
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
+import { dirname } from 'path'
 
 const logger = createLogger('mem9')
 
-// ─── Qdrant Client ──────────────────────────────────────
+// ─── Qdrant Client (kept for backward compat) ──────────
 
 interface QdrantPoint {
   id: string
@@ -28,7 +31,7 @@ export class QdrantClient {
       const res = await fetch(`${this.baseUrl}/collections/${name}`, {
         signal: AbortSignal.timeout(5000),
       })
-      if (res.ok) return // Collection exists
+      if (res.ok) return
 
       await fetch(`${this.baseUrl}/collections/${name}`, {
         method: 'PUT',
@@ -109,8 +112,73 @@ export interface EmbeddingProvider {
   dimensions: number
 }
 
+/**
+ * Local hash-based embedding provider — zero external dependencies.
+ * Generates deterministic pseudo-embeddings from text using character trigram
+ * frequency vectors. Not as accurate as real neural embeddings, but functional
+ * for basic similarity matching when no API key is available.
+ */
+export class LocalHashEmbeddingProvider implements EmbeddingProvider {
+  readonly dimensions: number
+
+  constructor(dimensions: number = 256) {
+    this.dimensions = dimensions
+  }
+
+  async embed(texts: string[]): Promise<number[][]> {
+    return texts.map((text) => this._hashEmbed(text))
+  }
+
+  private _hashEmbed(text: string): number[] {
+    const vec = new Float64Array(this.dimensions)
+    const normalized = text.toLowerCase().replace(/[^a-z0-9\s]/g, '')
+    const words = normalized.split(/\s+/).filter(Boolean)
+
+    // Character trigram hashing
+    for (const word of words) {
+      const padded = ` ${word} `
+      for (let i = 0; i < padded.length - 2; i++) {
+        const trigram = padded.slice(i, i + 3)
+        const hash = this._simpleHash(trigram)
+        const idx = Math.abs(hash) % this.dimensions
+        vec[idx] += hash > 0 ? 1 : -1
+      }
+    }
+
+    // Word-level hashing for broader semantic signal
+    for (const word of words) {
+      const hash = this._simpleHash(word)
+      const idx = Math.abs(hash) % this.dimensions
+      vec[idx] += (hash % 3) - 1
+    }
+
+    // L2 normalize
+    let norm = 0
+    for (let i = 0; i < this.dimensions; i++) {
+      norm += vec[i] * vec[i]
+    }
+    norm = Math.sqrt(norm)
+    if (norm > 0) {
+      for (let i = 0; i < this.dimensions; i++) {
+        vec[i] /= norm
+      }
+    }
+
+    return Array.from(vec)
+  }
+
+  private _simpleHash(s: string): number {
+    let hash = 0
+    for (let i = 0; i < s.length; i++) {
+      const ch = s.charCodeAt(i)
+      hash = ((hash << 5) - hash + ch) | 0
+    }
+    return hash
+  }
+}
+
 export class OpenAIEmbeddingProvider implements EmbeddingProvider {
-  readonly dimensions = 1536
+  readonly dimensions: number
   private apiKey: string
   private apiBase: string
   private model: string
@@ -119,10 +187,12 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
     apiKey: string,
     apiBase: string = 'https://api.openai.com/v1',
     model: string = 'text-embedding-3-small',
+    dimensions: number = 1536,
   ) {
     this.apiKey = apiKey
-    this.apiBase = apiBase
+    this.apiBase = apiBase.replace(/\/$/, '')
     this.model = model
+    this.dimensions = dimensions
   }
 
   async embed(texts: string[]): Promise<number[][]> {
@@ -145,7 +215,160 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
   }
 }
 
-// ─── Mem9 Service (orchestrates embedding + storage) ────
+// ─── SQLite Vector Store (replaces Qdrant) ──────────────
+
+interface VectorRecord {
+  id: string
+  vector: number[]
+  payload: Record<string, unknown>
+}
+
+function cosineSimilarity(a: number[], b: number[]): number {
+  let dotProduct = 0
+  let normA = 0
+  let normB = 0
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i]
+    normA += a[i] * a[i]
+    normB += b[i] * b[i]
+  }
+  if (normA === 0 || normB === 0) return 0
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB))
+}
+
+export class SQLiteVectorStore {
+  private db: Database | null = null
+  private dbPath: string
+  private initPromise: Promise<void> | null = null
+
+  constructor(dbPath: string = './data/mem9-vectors.db') {
+    this.dbPath = dbPath
+  }
+
+  private async ensureDb(): Promise<Database> {
+    if (this.db) return this.db
+
+    if (!this.initPromise) {
+      this.initPromise = this._initDb()
+    }
+    await this.initPromise
+    return this.db!
+  }
+
+  private async _initDb(): Promise<void> {
+    const SQL = await initSqlJs()
+
+    // Ensure directory exists
+    const dir = dirname(this.dbPath)
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true })
+    }
+
+    // Load existing DB or create new
+    if (existsSync(this.dbPath)) {
+      const buffer = readFileSync(this.dbPath)
+      this.db = new SQL.Database(buffer)
+    } else {
+      this.db = new SQL.Database()
+    }
+
+    // Create tables
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS vectors (
+        id TEXT PRIMARY KEY,
+        collection TEXT NOT NULL,
+        vector BLOB NOT NULL,
+        payload TEXT NOT NULL,
+        created_at TEXT DEFAULT (datetime('now'))
+      )
+    `)
+    this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_vectors_collection ON vectors(collection)
+    `)
+
+    this._save()
+    logger.info(`SQLite vector store initialized at ${this.dbPath}`)
+  }
+
+  private _save(): void {
+    if (!this.db) return
+    const data = this.db.export()
+    const buffer = Buffer.from(data)
+    writeFileSync(this.dbPath, buffer)
+  }
+
+  async upsert(collection: string, id: string, vector: number[], payload: Record<string, unknown>): Promise<void> {
+    const db = await this.ensureDb()
+    const vectorBlob = Buffer.from(new Float32Array(vector).buffer)
+    const payloadJson = JSON.stringify(payload)
+
+    db.run(
+      `INSERT OR REPLACE INTO vectors (id, collection, vector, payload) VALUES (?, ?, ?, ?)`,
+      [id, collection, vectorBlob, payloadJson],
+    )
+    this._save()
+  }
+
+  async search(
+    collection: string,
+    queryVector: number[],
+    limit: number = 10,
+    filter?: Record<string, unknown>,
+  ): Promise<{ id: string; score: number; payload: Record<string, unknown> }[]> {
+    const db = await this.ensureDb()
+
+    const results = db.exec(`SELECT id, vector, payload FROM vectors WHERE collection = ?`, [collection])
+    if (!results.length || !results[0].values.length) return []
+
+    const scored: { id: string; score: number; payload: Record<string, unknown> }[] = []
+
+    for (const row of results[0].values) {
+      const id = row[0] as string
+      const vectorBuf = row[1] as Uint8Array
+      const payloadStr = row[2] as string
+
+      const storedVector = Array.from(new Float32Array(vectorBuf.buffer, vectorBuf.byteOffset, vectorBuf.byteLength / 4))
+      const payload = JSON.parse(payloadStr) as Record<string, unknown>
+
+      // Apply filters
+      if (filter) {
+        let match = true
+        for (const [key, value] of Object.entries(filter)) {
+          if (payload[key] !== value) {
+            match = false
+            break
+          }
+        }
+        if (!match) continue
+      }
+
+      const score = cosineSimilarity(queryVector, storedVector)
+      scored.push({ id, score, payload })
+    }
+
+    // Sort by score descending and limit
+    scored.sort((a, b) => b.score - a.score)
+    return scored.slice(0, limit)
+  }
+
+  async delete(collection: string, ids: string[]): Promise<void> {
+    const db = await this.ensureDb()
+    const placeholders = ids.map(() => '?').join(',')
+    db.run(`DELETE FROM vectors WHERE collection = ? AND id IN (${placeholders})`, [collection, ...ids])
+    this._save()
+  }
+
+  async health(): Promise<boolean> {
+    try {
+      await this.ensureDb()
+      return true
+    } catch {
+      return false
+    }
+  }
+}
+
+// ─── Mem9 Service (original — uses Qdrant) ──────────────
 
 export class Mem9Service {
   private qdrant: QdrantClient
@@ -210,6 +433,66 @@ export class Mem9Service {
 
   async health(): Promise<boolean> {
     return this.qdrant.health()
+  }
+}
+
+// ─── LocalMem9Service (uses SQLite — no Docker!) ────────
+
+export class LocalMem9Service {
+  private store: SQLiteVectorStore
+  private embedder: EmbeddingProvider
+
+  constructor(embedder: EmbeddingProvider, dbPath?: string) {
+    this.store = new SQLiteVectorStore(dbPath)
+    this.embedder = embedder
+  }
+
+  async storeMemory(
+    id: string,
+    content: string,
+    metadata: Record<string, unknown>,
+  ): Promise<void> {
+    const [vector] = await this.embedder.embed([content])
+    await this.store.upsert('corn_memories', id, vector, {
+      content,
+      ...metadata,
+      stored_at: new Date().toISOString(),
+    })
+  }
+
+  async searchMemory(
+    query: string,
+    limit: number = 10,
+    filter?: Record<string, unknown>,
+  ): Promise<{ id: string; score: number; payload: Record<string, unknown> }[]> {
+    const [vector] = await this.embedder.embed([query])
+    return this.store.search('corn_memories', vector, limit, filter)
+  }
+
+  async storeKnowledge(
+    id: string,
+    content: string,
+    metadata: Record<string, unknown>,
+  ): Promise<void> {
+    const [vector] = await this.embedder.embed([content])
+    await this.store.upsert('corn_knowledge', id, vector, {
+      content,
+      ...metadata,
+      stored_at: new Date().toISOString(),
+    })
+  }
+
+  async searchKnowledge(
+    query: string,
+    limit: number = 10,
+    filter?: Record<string, unknown>,
+  ): Promise<{ id: string; score: number; payload: Record<string, unknown> }[]> {
+    const [vector] = await this.embedder.embed([query])
+    return this.store.search('corn_knowledge', vector, limit, filter)
+  }
+
+  async health(): Promise<boolean> {
+    return this.store.health()
   }
 }
 

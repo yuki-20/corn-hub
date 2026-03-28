@@ -13,12 +13,15 @@ RUN echo "node-linker=hoisted" > /root/.npmrc && echo "shamefully-hoist=true" >>
 FROM base AS deps
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc* ./
+COPY package.json pnpm-lock.yaml .npmrc* ./
 COPY apps/corn-api/package.json ./apps/corn-api/
 COPY apps/corn-web/package.json ./apps/corn-web/
 COPY packages/shared-utils/package.json ./packages/shared-utils/
 COPY packages/shared-types/package.json ./packages/shared-types/
 COPY packages/shared-mem9/package.json ./packages/shared-mem9/
+
+# Create a scoped workspace yaml
+RUN printf 'packages:\n  - "apps/corn-api"\n  - "apps/corn-web"\n  - "packages/shared-utils"\n  - "packages/shared-types"\n  - "packages/shared-mem9"\n' > pnpm-workspace.yaml
 
 RUN echo "node-linker=hoisted" > .npmrc && echo "shamefully-hoist=true" >> .npmrc
 
@@ -33,8 +36,21 @@ ARG COMMIT_SHA=unknown
 ARG BUILD_DATE=unknown
 
 COPY . .
+# Restore scoped workspace yaml
+RUN printf 'packages:\n  - "apps/corn-api"\n  - "apps/corn-web"\n  - "packages/shared-utils"\n  - "packages/shared-types"\n  - "packages/shared-mem9"\n' > pnpm-workspace.yaml
+
+# Regenerate .bin symlinks after full source copy
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --no-frozen-lockfile
+
+# Remove broken .bin symlinks in per-package node_modules
+RUN find packages apps -path '*/node_modules/.bin' -type d -exec rm -rf {} + 2>/dev/null || true
 
 RUN npx turbo build --filter=@corn/corn-api --filter=@corn/corn-web
+
+# Prepare public directory from corn-web static export
+RUN mkdir -p /app/public && \
+    cp -r /app/apps/corn-web/out/* /app/public/ 2>/dev/null || true
 
 # Stage 4: Production deps
 FROM base AS prod-deps
@@ -84,9 +100,8 @@ RUN mkdir -p /app/apps/corn-api/dist/db
 COPY --from=builder /app/apps/corn-api/src/db/schema.sql ./apps/corn-api/dist/db/schema.sql
 COPY --from=builder /app/version.json ./version.json
 
-# Dashboard Web static export
-RUN mkdir -p /app/public
-COPY --from=builder /app/apps/corn-web/out/ ./public/ 2>/dev/null || true
+# Dashboard Web static export (ensure dir exists even if corn-web build was skipped)
+COPY --from=builder /app/public/ ./public/
 
 # Metadata for ESM
 COPY --from=builder /app/package.json ./package.json

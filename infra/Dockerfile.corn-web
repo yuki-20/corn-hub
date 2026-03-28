@@ -13,8 +13,11 @@ RUN echo "node-linker=hoisted" > /root/.npmrc && echo "shamefully-hoist=true" >>
 FROM base AS deps
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc* ./
+COPY package.json pnpm-lock.yaml .npmrc* ./
 COPY apps/corn-web/package.json ./apps/corn-web/
+
+# Create a scoped workspace yaml
+RUN printf 'packages:\n  - "apps/corn-web"\n' > pnpm-workspace.yaml
 
 RUN echo "node-linker=hoisted" > .npmrc && echo "shamefully-hoist=true" >> .npmrc
 
@@ -28,6 +31,15 @@ WORKDIR /app
 ENV NEXT_PUBLIC_API_URL=""
 
 COPY . .
+# Restore scoped workspace yaml
+RUN printf 'packages:\n  - "apps/corn-web"\n' > pnpm-workspace.yaml
+
+# Regenerate .bin symlinks after full source copy
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --no-frozen-lockfile
+
+# Remove broken .bin symlinks in per-package node_modules
+RUN find apps -path '*/node_modules/.bin' -type d -exec rm -rf {} + 2>/dev/null || true
 
 RUN cd apps/corn-web && npx next build
 

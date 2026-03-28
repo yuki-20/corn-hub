@@ -1,20 +1,48 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import type { McpEnv } from '@corn/shared-types'
-import { Mem9Service, OpenAIEmbeddingProvider } from '@corn/shared-mem9'
+import { LocalMem9Service, OpenAIEmbeddingProvider, LocalHashEmbeddingProvider } from '@corn/shared-mem9'
+import type { EmbeddingProvider } from '@corn/shared-mem9'
 import { generateId } from '@corn/shared-utils'
 
-let mem9: Mem9Service | null = null
+let mem9: LocalMem9Service | null = null
+let usingFallback = false
 
-function getMem9(env: McpEnv): Mem9Service {
-  if (!mem9) {
-    const apiKey = process.env['OPENAI_API_KEY'] || 'proxy-key'
-    const apiBase = process.env['OPENAI_API_BASE'] || 'https://api.openai.com/v1'
-    const model = process.env['MEM9_EMBEDDING_MODEL'] || 'text-embedding-3-small'
-    const embedder = new OpenAIEmbeddingProvider(apiKey, apiBase, model)
-    mem9 = new Mem9Service(env.QDRANT_URL, embedder)
+async function createEmbedder(): Promise<EmbeddingProvider> {
+  const apiKey = process.env['OPENAI_API_KEY'] || ''
+  const apiBase = process.env['OPENAI_API_BASE'] || 'https://api.openai.com/v1'
+  const model = process.env['MEM9_EMBEDDING_MODEL'] || 'text-embedding-3-small'
+  const dims = Number(process.env['MEM9_EMBEDDING_DIMS']) || 1536
+
+  if (apiKey) {
+    // Test the key before committing to it
+    try {
+      const testEmbedder = new OpenAIEmbeddingProvider(apiKey, apiBase, model, dims)
+      await testEmbedder.embed(['test'])
+      console.error('[corn-mcp] Embedding API key validated ✓')
+      return testEmbedder
+    } catch (err) {
+      console.error(`[corn-mcp] Embedding API key invalid, falling back to local hash embeddings: ${err instanceof Error ? err.message : err}`)
+    }
+  } else {
+    console.error('[corn-mcp] No OPENAI_API_KEY set, using local hash embeddings')
   }
-  return mem9
+
+  usingFallback = true
+  return new LocalHashEmbeddingProvider(256)
+}
+
+let initPromise: Promise<LocalMem9Service> | null = null
+
+function getMem9(env: McpEnv): Promise<LocalMem9Service> {
+  if (mem9) return Promise.resolve(mem9)
+  if (!initPromise) {
+    initPromise = createEmbedder().then((embedder) => {
+      mem9 = new LocalMem9Service(embedder, './data/mem9-vectors.db')
+      return mem9
+    })
+  }
+  return initPromise
 }
 
 export function registerMemoryTools(server: McpServer, env: McpEnv) {
@@ -29,7 +57,7 @@ export function registerMemoryTools(server: McpServer, env: McpEnv) {
       tags: z.array(z.string()).optional().describe('Tags for categorization'),
     },
     async ({ content, projectId, branch, tags }) => {
-      const svc = getMem9(env)
+      const svc = await getMem9(env)
       const id = generateId('mem')
       const agentId = (env as McpEnv & { API_KEY_OWNER?: string }).API_KEY_OWNER || 'unknown'
 
@@ -62,7 +90,7 @@ export function registerMemoryTools(server: McpServer, env: McpEnv) {
       branch: z.string().optional().describe('Filter by branch'),
     },
     async ({ query, limit, projectId, branch }) => {
-      const svc = getMem9(env)
+      const svc = await getMem9(env)
 
       const filter: Record<string, unknown> = {}
       if (projectId) filter.project_id = projectId

@@ -2,6 +2,23 @@
 
 All notable changes to Corn Hub will be documented in this file.
 
+## [0.1.1] — 2026-03-28
+
+### 🐛 Bug Fixes
+
+- **Docker build: missing `shared-mem9` in MCP Dockerfile** — `corn-mcp` depends on `@corn/shared-mem9` but the Dockerfile never copied it; added to all stages (deps, prod-deps, runner, symlinks, metadata)
+- **Docker build: broken `.bin` symlinks with pnpm hoisting** — `pnpm install` with `node-linker=hoisted` creates broken per-package `node_modules/.bin/tsc` symlinks inside Docker; fixed by removing broken `.bin` dirs before build and using `npx tsc` to resolve from root
+- **Docker build: workspace glob mismatch** — `pnpm-workspace.yaml` uses `apps/*`/`packages/*` globs but Dockerfiles only include a subset of packages; now generates a scoped workspace yaml per Dockerfile to prevent resolution errors
+- **Docker build: invalid COPY with shell redirect** — `COPY ... 2>/dev/null || true` is invalid Dockerfile syntax; replaced with `RUN cp` in builder stage
+- **Production module resolution** — `shared-types` and `shared-utils` had `"main": "./src/index.ts"` pointing to TypeScript source; changed to `"./dist/index.js"` so compiled output is resolved in production containers
+- **Embedding fallback** — MCP server now uses local hash-based embedding when external API key is invalid, ensuring memory/knowledge tools remain functional
+
+### 🔧 Infrastructure
+
+- All package build scripts changed from `tsc` to `npx tsc` for Docker compatibility
+- All three Dockerfiles (`corn-api`, `corn-mcp`, `corn-web`) updated with scoped workspace approach and `.bin` cleanup
+- Full Docker Compose stack verified: Qdrant, corn-api, corn-mcp, corn-web, Watchtower all healthy
+
 ## [0.1.0] — 2026-03-28
 
 ### 🐛 Bug Fixes
