@@ -44,7 +44,7 @@ export function registerHealthTools(server: McpServer, env: McpEnv) {
 
       // Check embedding provider
       const apiKey = process.env['OPENAI_API_KEY'] || ''
-      const apiBase = process.env['OPENAI_API_BASE'] || 'https://api.openai.com/v1'
+      const apiBase = process.env['OPENAI_API_BASE'] || 'https://api.voyageai.com/v1'
       let embeddingStatus = 'no API key'
       
       if (apiKey && apiKey !== 'proxy-key') {
@@ -55,7 +55,7 @@ export function registerHealthTools(server: McpServer, env: McpEnv) {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${apiKey}`,
             },
-            body: JSON.stringify({ input: ['test'], model: process.env['MEM9_EMBEDDING_MODEL'] || 'text-embedding-3-small' }),
+            body: JSON.stringify({ input: ['test'], model: process.env['MEM9_EMBEDDING_MODEL'] || 'voyage-code-3' }),
             signal: AbortSignal.timeout(5000),
           })
           embeddingStatus = testRes.ok ? 'ok' : 'invalid key (using local fallback)'
@@ -79,8 +79,8 @@ export function registerHealthTools(server: McpServer, env: McpEnv) {
                 status: coreOk ? 'healthy' : 'degraded',
                 version: env.MCP_SERVER_VERSION || '0.1.0',
                 services,
-                embeddingModel: process.env['MEM9_EMBEDDING_MODEL'] || 'text-embedding-3-small',
-                embeddingBase: process.env['OPENAI_API_BASE'] || 'https://api.openai.com/v1',
+                embeddingModel: process.env['MEM9_EMBEDDING_MODEL'] || 'voyage-code-3',
+                embeddingBase: process.env['OPENAI_API_BASE'] || 'https://api.voyageai.com/v1',
                 timestamp: new Date().toISOString(),
               },
               null,

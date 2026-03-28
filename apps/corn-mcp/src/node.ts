@@ -38,5 +38,5 @@ serve({ fetch: app.fetch, port }, () => {
   console.log(`🌽 Corn MCP Server listening on http://localhost:${port}`)
   console.log(`   Health: http://localhost:${port}/health`)
   console.log(`   MCP:    http://localhost:${port}/mcp`)
-  console.log(`   Embedding: ${process.env['OPENAI_API_BASE'] || 'https://api.openai.com/v1'} (${process.env['MEM9_EMBEDDING_MODEL'] || 'text-embedding-3-small'})`)
+  console.log(`   Embedding: ${process.env['OPENAI_API_BASE'] || 'https://api.voyageai.com/v1'} (${process.env['MEM9_EMBEDDING_MODEL'] || 'voyage-code-3'})`)
 })

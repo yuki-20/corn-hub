@@ -9,9 +9,9 @@ let mem9: LocalMem9Service | null = null
 
 async function createEmbedder(): Promise<EmbeddingProvider> {
   const apiKey = process.env['OPENAI_API_KEY'] || ''
-  const apiBase = process.env['OPENAI_API_BASE'] || 'https://api.openai.com/v1'
-  const model = process.env['MEM9_EMBEDDING_MODEL'] || 'text-embedding-3-small'
-  const dims = Number(process.env['MEM9_EMBEDDING_DIMS']) || 1536
+  const apiBase = process.env['OPENAI_API_BASE'] || 'https://api.voyageai.com/v1'
+  const model = process.env['MEM9_EMBEDDING_MODEL'] || 'voyage-code-3'
+  const dims = Number(process.env['MEM9_EMBEDDING_DIMS']) || 1024
 
   if (apiKey) {
     try {
