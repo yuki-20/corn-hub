@@ -3,10 +3,9 @@
   "version": "0.2.0",
   "private": true,
   "description": "AI Agent Intelligence Hub — Unified MCP gateway with persistent memory, knowledge base, and quality enforcement",
-  "author": "AntiTamper <AntiTamper@users.noreply.github.com>",
+  "author": "yuki-20 <yuki-20@users.noreply.github.com>",
   "contributors": [
-    "AntiTamper <AntiTamper@users.noreply.github.com>",
-    "yuki-20 <yuki-20@users.noreply.github.com>"
+    "AntiTamper <AntiTamper@users.noreply.github.com>"
   ],
   "packageManager": "pnpm@10.32.1",
   "engines": {
