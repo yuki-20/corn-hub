@@ -34,7 +34,6 @@ case "$CMD" in
         echo "   Dashboard:  http://localhost:3000"
         echo "   MCP Server: http://localhost:8317/mcp"
         echo "   API:        http://localhost:4000"
-        echo "   Qdrant:     http://localhost:6333"
         ;;
     down)
         echo "Stopping Corn Hub stack..."

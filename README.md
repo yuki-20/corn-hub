@@ -506,7 +506,16 @@ During a live 29-call session on the Corn Hub codebase (55 files, 217 KB):
 - Quality: 100/100 Grade A
 - Dashboard E2E: all pages rendering correctly
 
----
+#### 🧹 Release Cleanup
+- **DELETED:** `CHANGELOG.md` — Consolidated into README, single source of truth
+- **DELETED:** `apps/corn-web/README.md` — Default create-next-app boilerplate
+- **DELETED:** 5 Next.js boilerplate SVGs (`file.svg`, `globe.svg`, `next.svg`, `vercel.svg`, `window.svg`)
+- **REMOVED:** `QDRANT_URL` from `apps/corn-mcp/src/types.ts` — Qdrant fully replaced by SQLite
+- **REMOVED:** Qdrant references from `start.cmd` and `start.sh`
+- **FIXED:** Quality report threshold raised from ≥60/100 to **≥80/100** in workflow config
+- **BUMPED:** `version.json` → `0.2.0`
+
+
 
 ### v0.1.2 — 2026-03-28
 

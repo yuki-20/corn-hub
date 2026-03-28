@@ -67,8 +67,8 @@ This workflow is **COMPULSORY** for every single task. If you skip a step, the t
     - `scoreRegression` (0-25): Were any existing features broken?
     - `scoreStandards` (0-25): Does the code follow project conventions?
     - `scoreTraceability` (0-25): Can changes be traced to the task?
-    - **Total MUST be ≥60/100 to PASS**
-    - If < 60: FIX the issues, then resubmit.
+    - **Total MUST be ≥80/100 to PASS**
+    - If < 80: FIX the issues, then resubmit.
 
 **⛔ DO NOT PROCEED to Phase 4 until the quality report passes.**
 
@@ -121,8 +121,8 @@ Every task must call ALL of these tools. Check them off as you go:
 
 1. **NEVER skip any tool.** Every tool in the checklist MUST be called at least once per task.
 2. **NEVER execute a plan that scored below 80%** on `corn_plan_quality`.
-3. **NEVER end a task without a passing `corn_quality_report`** (≥60/100).
+3. **NEVER end a task without a passing `corn_quality_report`** (≥80/100).
 4. **ALWAYS call `corn_tool_stats` at both the START and END** of every task.
 5. **ALWAYS call `corn_health` before ending** to verify system integrity.
-6. If a quality report scores below 60/100, you MUST fix the issues and resubmit before ending.
+6. If a quality report scores below 80/100, you MUST fix the issues and resubmit before ending.
 7. If any tool returns an error, document it and attempt a retry. Do NOT silently skip it.
