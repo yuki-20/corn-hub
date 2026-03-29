@@ -23,7 +23,7 @@ Instead of dumping entire files into the context window, CornMCP provides:
 - 📋 **Quality Gates** — Plans must score ≥80% before execution
 - 📊 **Live Analytics** — Track every tool call, latency, and token savings
 - 🔄 **Multi-Agent Awareness** — Agents see each other's changes in real-time
-- 💾 **Zero External Dependencies** — No Docker, no external services. Everything runs locally with SQLite.
+- 💾 **Zero External Dependencies** — No external services. Everything runs locally with SQLite.
 
 ---
 
