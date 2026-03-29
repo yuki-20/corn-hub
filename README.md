@@ -16,7 +16,7 @@
 
 Corn Hub is a **Model Context Protocol (MCP) server** and real-time **analytics dashboard** that gives AI coding agents (Antigravity, Cursor, Claude Code, Codex) surgical access to your codebase through 18 specialized tools.
 
-Instead of dumping entire files into the context window, Corn Hub provides:
+Instead of dumping entire files into the context window, CornMCP provides:
 
 - 🧠 **Semantic Memory** — Agents remember across sessions via vector search
 - 🔍 **Native AST Engine** — Real call graphs, type hierarchies, and symbol-level analysis via TypeScript Compiler API
