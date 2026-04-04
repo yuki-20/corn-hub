@@ -27,22 +27,51 @@ export interface HealthData {
 export const checkHealth = () => apiFetch<HealthData>('/health')
 
 // ─── Dashboard Overview ─────────────────────────────────
+export interface TopToolStat {
+  tool: string
+  calls: number
+  tokensSaved: number
+  avgLatencyMs: number
+  dataBytes: number
+  successRate: number
+}
+
+export interface RecentSession {
+  id: string
+  agent: string
+  project: string
+  task: string
+  status: string
+  createdAt: string
+}
+
 export interface DashboardOverview {
   projects: any[]
   totalAgents: number
   today: { queries: number; sessions: number }
-  quality: { lastGrade: string; averageScore: number; reportsToday: number }
+  quality: {
+    lastGrade: string
+    averageScore: number
+    reportsToday: number
+    totalReports: number
+    passRate: number
+  }
   knowledge: { totalDocs: number; totalChunks: number; totalHits: number }
+  indexedSymbols: number
+  completedIndexJobs: number
   activeKeys: number
   totalSessions: number
   organizations: number
   uptime: number
-  tokenSavings?: {
+  tokenSavings: {
     totalTokensSaved: number
     totalToolCalls: number
+    totalDataBytes: number
+    avgLatencyMs: number
     avgTokensPerCall: number
-    topTools: { tool: string; tokensSaved: number }[]
+    topTools: TopToolStat[]
   }
+  recentSessions: RecentSession[]
 }
 
 export const getDashboardOverview = () => apiFetch<DashboardOverview>('/api/metrics/overview')
@@ -152,4 +181,3 @@ export interface ToolAnalytics {
 
 export const getToolAnalytics = (days = 30) =>
   apiFetch<ToolAnalytics>(`/api/analytics/tool-analytics?days=${days}`)
-

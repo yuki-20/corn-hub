@@ -55,6 +55,25 @@ indexingRouter.post('/:id/index', async (c) => {
            jobId],
         )
 
+        // Log indexing completion as activity for dashboard feed
+        await dbRun(
+          `INSERT INTO query_logs (agent_id, tool, params, latency_ms, status, project_id)
+           VALUES (?, ?, ?, ?, 'ok', ?)`,
+          [
+            'system',
+            'project_indexed',
+            JSON.stringify({ project: project.name, symbols: result.symbolsFound, files: result.filesAnalyzed, edges: result.edgesFound }),
+            0,
+            projectId,
+          ],
+        )
+
+        // Update project with indexed symbol count
+        await dbRun(
+          `UPDATE projects SET indexed_symbols = ?, indexed_at = datetime('now') WHERE id = ?`,
+          [result.symbolsFound, projectId],
+        )
+
         logger.info(`Indexing complete for ${project.name}: ${result.symbolsFound} symbols, ${result.edgesFound} edges`)
       } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error)
