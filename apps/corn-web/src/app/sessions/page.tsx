@@ -4,7 +4,9 @@ import useSWR from 'swr'
 import { getSessions } from '@/lib/api'
 
 function timeAgo(d: string) {
-  const mins = Math.floor((Date.now() - new Date(d).getTime()) / 60000)
+  // SQLite datetime lacks 'Z' suffix — append it to force UTC parsing
+  const normalized = d.endsWith('Z') || d.includes('+') ? d : d + 'Z'
+  const mins = Math.floor((Date.now() - new Date(normalized).getTime()) / 60000)
   if (mins < 1) return 'just now'
   if (mins < 60) return `${mins}m ago`
   const hrs = Math.floor(mins / 60)
@@ -14,11 +16,22 @@ function timeAgo(d: string) {
 
 function duration(start: string, end?: string): string {
   if (!end) return '—'
-  const ms = new Date(end).getTime() - new Date(start).getTime()
+  // Normalize both dates for SQLite datetime format
+  const normStart = start.endsWith('Z') || start.includes('+') ? start : start + 'Z'
+  const normEnd = end.endsWith('Z') || end.includes('+') ? end : end + 'Z'
+  const ms = new Date(normEnd).getTime() - new Date(normStart).getTime()
   const mins = Math.floor(ms / 60000)
   if (mins < 1) return '<1m'
   if (mins < 60) return `${mins}m`
   return `${Math.floor(mins / 60)}h ${mins % 60}m`
+}
+
+// Parse session context JSON safely
+function parseContext(contextStr: string | null | undefined): {
+  summary?: string; filesChanged?: string[]; decisions?: string[]; blockers?: string[]; completedAt?: string
+} {
+  if (!contextStr) return {}
+  try { return JSON.parse(contextStr) } catch { return {} }
 }
 
 export default function SessionsPage() {
@@ -63,8 +76,9 @@ export default function SessionsPage() {
           <tbody>
             {sessions.length > 0 ? (
               sessions.map((s: any) => {
-                const files = (() => { try { return JSON.parse(s.files_changed || '[]') } catch { return [] } })()
-                const decisions = (() => { try { return JSON.parse(s.decisions || '[]') } catch { return [] } })()
+                const ctx = parseContext(s.context)
+                const files = ctx.filesChanged || []
+                const decisions = ctx.decisions || []
                 return (
                   <tr key={s.id}>
                     <td style={{ fontWeight: 600 }}>{s.from_agent}</td>
@@ -77,7 +91,7 @@ export default function SessionsPage() {
                         {s.status}
                       </span>
                     </td>
-                    <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{duration(s.created_at, s.ended_at)}</td>
+                    <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{duration(s.created_at, ctx.completedAt)}</td>
                     <td>
                       {files.length > 0 ? (
                         <span className="badge badge-info" title={files.join(', ')}>{files.length} files</span>

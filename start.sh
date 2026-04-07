@@ -1,5 +1,5 @@
 #!/bin/bash
-# Corn Hub — Docker Compose Startup Script
+# ScalpelMCP — Docker Compose Startup Script
 # Usage: ./start.sh [up|down|logs|restart|build]
 
 set -euo pipefail
@@ -12,7 +12,7 @@ GOLD="\033[33m"
 GREEN="\033[32m"
 RESET="\033[0m"
 
-echo -e "${GOLD}🌽 Corn Hub — AI Agent Intelligence Platform${RESET}"
+echo -e "${GOLD}🔪 ScalpelMCP — Surgical AI Agent Intelligence Platform${RESET}"
 echo ""
 
 # Check for .env
@@ -27,27 +27,27 @@ CMD="${1:-up}"
 
 case "$CMD" in
     up)
-        echo -e "${GREEN}Starting Corn Hub stack...${RESET}"
+        echo -e "${GREEN}Starting ScalpelMCP stack...${RESET}"
         docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build
         echo ""
-        echo -e "${GREEN}✅ Corn Hub is running!${RESET}"
+        echo -e "${GREEN}✅ ScalpelMCP is running!${RESET}"
         echo "   Dashboard:  http://localhost:3000"
         echo "   MCP Server: http://localhost:8317/mcp"
         echo "   API:        http://localhost:4000"
         ;;
     down)
-        echo "Stopping Corn Hub stack..."
+        echo "Stopping ScalpelMCP stack..."
         docker compose -f "$COMPOSE_FILE" down
         ;;
     logs)
         docker compose -f "$COMPOSE_FILE" logs -f --tail=50
         ;;
     restart)
-        echo "Restarting Corn Hub stack..."
+        echo "Restarting ScalpelMCP stack..."
         docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" restart
         ;;
     build)
-        echo "Building Corn Hub images..."
+        echo "Building ScalpelMCP images..."
         docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" build --no-cache
         ;;
     status)

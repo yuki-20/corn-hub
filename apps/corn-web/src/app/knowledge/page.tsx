@@ -4,7 +4,9 @@ import useSWR from 'swr'
 import { getKnowledgeDocs } from '@/lib/api'
 
 function timeAgo(d: string) {
-  const mins = Math.floor((Date.now() - new Date(d).getTime()) / 60000)
+  // SQLite datetime lacks 'Z' suffix — append it to force UTC parsing
+  const normalized = d.endsWith('Z') || d.includes('+') ? d : d + 'Z'
+  const mins = Math.floor((Date.now() - new Date(normalized).getTime()) / 60000)
   if (mins < 1) return 'just now'
   if (mins < 60) return `${mins}m ago`
   const hrs = Math.floor(mins / 60)

@@ -5,53 +5,62 @@ export const metricsRouter = new Hono()
 
 // ─── Log a query (called by MCP server) ─────────────────
 metricsRouter.post('/query-log', async (c) => {
-  const body = await c.req.json()
+  try {
+    const body = await c.req.json()
 
-  await dbRun(
-    `INSERT INTO query_logs (agent_id, tool, params, latency_ms, status, error, project_id, input_size, output_size, compute_tokens, compute_model)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      body.agentId || 'unknown',
-      body.tool || 'unknown',
-      body.params ? JSON.stringify(body.params) : null,
-      body.latencyMs || 0,
-      body.status || 'ok',
-      body.error || null,
-      body.projectId || null,
-      body.inputSize || 0,
-      body.outputSize || 0,
-      body.computeTokens || 0,
-      body.computeModel || null,
-    ],
-  )
+    await dbRun(
+      `INSERT INTO query_logs (agent_id, tool, params, latency_ms, status, error, project_id, input_size, output_size, compute_tokens, compute_model)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        body.agentId || 'unknown',
+        body.tool || 'unknown',
+        body.params ? JSON.stringify(body.params) : null,
+        body.latencyMs || 0,
+        body.status || 'ok',
+        body.error || null,
+        body.projectId || null,
+        body.inputSize || 0,
+        body.outputSize || 0,
+        body.computeTokens || 0,
+        body.computeModel || null,
+      ],
+    )
 
-  return c.json({ ok: true })
+    return c.json({ ok: true })
+  } catch (error) {
+    return c.json({ error: String(error) }, 500)
+  }
 })
 
 // ─── Get activity feed ──────────────────────────────────
 metricsRouter.get('/activity', async (c) => {
-  const limit = Number(c.req.query('limit') || '20')
+  try {
+    const limit = Math.min(200, Math.max(1, parseInt(c.req.query('limit') || '20', 10) || 20))
 
-  const rows = await dbAll(
-    `SELECT id, agent_id, tool, status, latency_ms, created_at
-     FROM query_logs ORDER BY created_at DESC LIMIT ?`,
-    [limit],
-  )
+    const rows = await dbAll(
+      `SELECT id, agent_id, tool, status, latency_ms, created_at
+       FROM query_logs ORDER BY created_at DESC LIMIT ?`,
+      [limit],
+    )
 
-  const activity = rows.map((r) => ({
-    type: 'query',
-    detail: r.tool,
-    agent_id: r.agent_id,
-    status: r.status,
-    latency_ms: r.latency_ms,
-    created_at: r.created_at,
-  }))
+    const activity = rows.map((r) => ({
+      type: 'query',
+      detail: r.tool,
+      agent_id: r.agent_id,
+      status: r.status,
+      latency_ms: r.latency_ms,
+      created_at: r.created_at,
+    }))
 
-  return c.json({ activity })
+    return c.json({ activity })
+  } catch (error) {
+    return c.json({ error: String(error) }, 500)
+  }
 })
 
 // ─── Dashboard overview ─────────────────────────────────
 metricsRouter.get('/overview', async (c) => {
+  try {
   const projects = await dbAll('SELECT * FROM projects')
 
   // ── Today's metrics ──
@@ -180,22 +189,29 @@ metricsRouter.get('/overview', async (c) => {
       createdAt: s.created_at,
     })),
   })
+  } catch (error) {
+    return c.json({ error: String(error) }, 500)
+  }
 })
 
 // ─── Hints engine ───────────────────────────────────────
 metricsRouter.get('/hints/:agentId', async (c) => {
-  const currentTool = c.req.query('currentTool') || ''
-  const hints: string[] = []
+  try {
+    const currentTool = c.req.query('currentTool') || ''
+    const hints: string[] = []
 
-  if (currentTool === 'corn_session_start') {
-    hints.push('💡 Use corn_memory_search to recall context from previous sessions')
-  }
-  if (currentTool === 'corn_memory_store') {
-    hints.push('💡 Consider also storing in corn_knowledge_store for team-wide sharing')
-  }
-  if (currentTool === 'corn_session_end') {
-    hints.push('💡 Run corn_quality_report before ending to track quality metrics')
-  }
+    if (currentTool === 'corn_session_start') {
+      hints.push('💡 Use corn_memory_search to recall context from previous sessions')
+    }
+    if (currentTool === 'corn_memory_store') {
+      hints.push('💡 Consider also storing in corn_knowledge_store for team-wide sharing')
+    }
+    if (currentTool === 'corn_session_end') {
+      hints.push('💡 Run corn_quality_report before ending to track quality metrics')
+    }
 
-  return c.json({ hints })
+    return c.json({ hints })
+  } catch (error) {
+    return c.json({ error: String(error) }, 500)
+  }
 })

@@ -40,7 +40,7 @@ async function createEmbedder(): Promise<EmbeddingProvider> {
 
 let initPromise: Promise<LocalMem9Service> | null = null
 
-function getMem9(env: McpEnv): Promise<LocalMem9Service> {
+export function getMem9(env: McpEnv): Promise<LocalMem9Service> {
   if (mem9) return Promise.resolve(mem9)
   if (!initPromise) {
     initPromise = createEmbedder().then((embedder) => {

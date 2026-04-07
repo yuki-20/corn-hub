@@ -187,8 +187,16 @@ export interface DashboardOverview {
   projects: Project[]
   totalAgents: number
   today: { queries: number; sessions: number }
-  quality: { lastGrade: string; averageScore: number; reportsToday: number }
+  quality: {
+    lastGrade: string
+    averageScore: number
+    reportsToday: number
+    totalReports: number
+    passRate: number
+  }
   knowledge: { totalDocs: number; totalChunks: number; totalHits: number }
+  indexedSymbols: number
+  completedIndexJobs: number
   activeKeys: number
   totalSessions: number
   organizations: number
@@ -196,9 +204,19 @@ export interface DashboardOverview {
   tokenSavings?: {
     totalTokensSaved: number
     totalToolCalls: number
+    totalDataBytes: number
+    avgLatencyMs: number
     avgTokensPerCall: number
-    topTools: { tool: string; tokensSaved: number }[]
+    topTools: { tool: string; calls: number; tokensSaved: number; avgLatencyMs: number; dataBytes: number; successRate: number }[]
   }
+  recentSessions: {
+    id: string
+    agent: string
+    project: string
+    task: string
+    status: string
+    createdAt: string
+  }[]
 }
 
 // ─── Health ─────────────────────────────────────────────

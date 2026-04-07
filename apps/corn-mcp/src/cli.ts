@@ -85,7 +85,7 @@ async function run() {
     API_KEYS: '',
   }
 
-  const envWithOwner = { ...env, API_KEY_OWNER: 'local-ide' }
+  const envWithOwner = { ...env, API_KEY_OWNER: 'dev' }
 
   const server = createMcpServer(envWithOwner)
   const transport = new StdioServerTransport()

@@ -1,49 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import type { McpEnv } from '@corn/shared-types'
-import { LocalMem9Service, OpenAIEmbeddingProvider, LocalHashEmbeddingProvider } from '@corn/shared-mem9'
-import type { EmbeddingProvider } from '@corn/shared-mem9'
+import { getMem9 } from './memory.js'
 import { generateId } from '@corn/shared-utils'
-
-let mem9: LocalMem9Service | null = null
-
-async function createEmbedder(): Promise<EmbeddingProvider> {
-  const apiKey = process.env['OPENAI_API_KEY'] || ''
-  const apiBase = process.env['OPENAI_API_BASE'] || 'https://api.voyageai.com/v1'
-  const model = process.env['MEM9_EMBEDDING_MODEL'] || 'voyage-code-3'
-  const dims = Number(process.env['MEM9_EMBEDDING_DIMS']) || 1024
-
-  // Model rotation: comma-separated fallback list from env, or sensible defaults
-  const fallbackEnv = process.env['MEM9_FALLBACK_MODELS'] || ''
-  const fallbackModels = fallbackEnv
-    ? fallbackEnv.split(',').map((m) => m.trim()).filter(Boolean)
-    : ['voyage-4-large', 'voyage-4', 'voyage-code-2', 'voyage-4-lite']
-
-  if (apiKey) {
-    try {
-      const testEmbedder = new OpenAIEmbeddingProvider(apiKey, apiBase, model, dims, fallbackModels)
-      await testEmbedder.embed(['test'])
-      return testEmbedder
-    } catch {
-      // Fall through to local embeddings
-    }
-  }
-
-  return new LocalHashEmbeddingProvider(256)
-}
-
-let initPromise: Promise<LocalMem9Service> | null = null
-
-function getMem9(env: McpEnv): Promise<LocalMem9Service> {
-  if (mem9) return Promise.resolve(mem9)
-  if (!initPromise) {
-    initPromise = createEmbedder().then((embedder) => {
-      mem9 = new LocalMem9Service(embedder, './data/mem9-vectors.db')
-      return mem9
-    })
-  }
-  return initPromise
-}
 
 export function registerKnowledgeTools(server: McpServer, env: McpEnv) {
   // ─── Store Knowledge ─────────────────────────────────
@@ -118,21 +77,33 @@ export function registerKnowledgeTools(server: McpServer, env: McpEnv) {
       const filter: Record<string, unknown> = {}
       if (projectId) filter.project_id = projectId
 
-      const results = await svc.searchKnowledge(query, limit, Object.keys(filter).length > 0 ? filter : undefined)
+      // Fetch extra results to account for post-filtering by tags
+      const fetchLimit = tags && tags.length > 0 ? (limit ?? 5) * 3 : (limit ?? 5)
+      let results = await svc.searchKnowledge(query, fetchLimit, Object.keys(filter).length > 0 ? filter : undefined)
+
+      // Post-filter by tags if specified (vector store doesn't support array matching)
+      if (tags && tags.length > 0) {
+        const tagSet = new Set(tags.map(t => t.toLowerCase()))
+        results = results.filter(r => {
+          const payload = r.payload as Record<string, unknown>
+          const itemTags = (payload.tags as string[]) || []
+          return itemTags.some(t => tagSet.has(t.toLowerCase()))
+        }).slice(0, limit ?? 5)
+      }
 
       if (results.length === 0) {
         return {
           content: [
             {
               type: 'text' as const,
-              text: `No knowledge found for: "${query}"`,
+              text: `No knowledge found for: "${query}"${tags?.length ? ` (filtered by tags: ${tags.join(', ')})` : ''}`,
             },
           ],
         }
       }
 
       const formatted = results
-        .map((r, i) => {
+        .map((r: { payload: Record<string, unknown>; score: number }, i: number) => {
           const payload = r.payload as Record<string, unknown>
           return `${i + 1}. **${payload.title || 'Untitled'}** [Score: ${r.score.toFixed(3)}]\n   By: ${payload.agent_id || 'unknown'} | Tags: ${((payload.tags as string[]) || []).join(', ') || 'none'}\n   ${(payload.content as string || '').slice(0, 200)}${(payload.content as string || '').length > 200 ? '...' : ''}`
         })

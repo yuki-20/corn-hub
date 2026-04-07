@@ -3,6 +3,10 @@ import { dbAll, dbGet, dbRun } from '../db/client.js'
 import { readFileSync, existsSync } from 'node:fs'
 import { join, normalize, relative } from 'node:path'
 import { execSync } from 'node:child_process'
+import { promisify } from 'node:util'
+import { exec as execCb } from 'node:child_process'
+
+const execAsync = promisify(execCb)
 import {
   analyzeProject,
   searchSymbols,
@@ -288,10 +292,16 @@ intelRouter.post('/detect-changes', async (c) => {
 
     let status = '', diffStat = '', branch = '', lastCommit = ''
     try {
-      status = execSync(`git ${statusCmd}`, { cwd: root, timeout: 10000, encoding: 'utf-8' }).trim()
-      diffStat = execSync(`git ${diffCmd}`, { cwd: root, timeout: 10000, encoding: 'utf-8' }).trim()
-      branch = execSync(`git branch --show-current`, { cwd: root, timeout: 5000, encoding: 'utf-8' }).trim()
-      lastCommit = execSync(`git log -1 --oneline`, { cwd: root, timeout: 5000, encoding: 'utf-8' }).trim()
+      const [statusResult, diffResult, branchResult, commitResult] = await Promise.allSettled([
+        execAsync(`git ${statusCmd}`, { cwd: root, timeout: 10000, encoding: 'utf-8' }),
+        execAsync(`git ${diffCmd}`, { cwd: root, timeout: 10000, encoding: 'utf-8' }),
+        execAsync(`git branch --show-current`, { cwd: root, timeout: 5000, encoding: 'utf-8' }),
+        execAsync(`git log -1 --oneline`, { cwd: root, timeout: 5000, encoding: 'utf-8' }),
+      ])
+      if (statusResult.status === 'fulfilled') status = statusResult.value.stdout.trim()
+      if (diffResult.status === 'fulfilled') diffStat = diffResult.value.stdout.trim()
+      if (branchResult.status === 'fulfilled') branch = branchResult.value.stdout.trim()
+      if (commitResult.status === 'fulfilled') lastCommit = commitResult.value.stdout.trim()
     } catch {
       // Not a git repo or git not available
     }

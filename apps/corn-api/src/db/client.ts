@@ -45,13 +45,40 @@ export async function getDb(): Promise<Database> {
   return db
 }
 
+let saveTimer: ReturnType<typeof setTimeout> | null = null
+let saveDirty = false
+
 export function saveDb(): void {
   if (db && dbPath) {
+    saveDirty = true
+    // Debounce: batch rapid writes into a single flush
+    if (saveTimer) clearTimeout(saveTimer)
+    saveTimer = setTimeout(() => {
+      if (db && dbPath && saveDirty) {
+        const data = db.export()
+        const buffer = Buffer.from(data)
+        writeFileSync(dbPath, buffer)
+        saveDirty = false
+      }
+      saveTimer = null
+    }, 100)
+  }
+}
+
+// Force-flush on process exit to prevent data loss
+function flushDb(): void {
+  if (saveTimer) clearTimeout(saveTimer)
+  if (db && dbPath && saveDirty) {
     const data = db.export()
     const buffer = Buffer.from(data)
     writeFileSync(dbPath, buffer)
+    saveDirty = false
   }
 }
+
+process.on('beforeExit', () => { flushDb() })
+process.on('SIGINT', () => { flushDb(); if (db) { db.close(); db = null }; process.exit(0) })
+process.on('SIGTERM', () => { flushDb(); if (db) { db.close(); db = null }; process.exit(0) })
 
 export function closeDb(): void {
   if (db) {

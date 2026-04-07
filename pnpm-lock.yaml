@@ -41,6 +41,9 @@ importers:
       sql.js:
         specifier: ^1.12.0
         version: 1.14.1
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
     devDependencies:
       '@types/sql.js':
         specifier: ^1.4.10
@@ -48,9 +51,6 @@ importers:
       tsx:
         specifier: ^4.19.0
         version: 4.21.0
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
 
   apps/corn-mcp:
     dependencies:
@@ -109,6 +109,15 @@ importers:
         version: 19.2.3(@types/react@19.2.14)
       typescript:
         specifier: ^5
+        version: 5.9.3
+
+  cli/corn-install:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.15
+      typescript:
+        specifier: ^5.7.0
         version: 5.9.3
 
   packages/shared-mem9:
