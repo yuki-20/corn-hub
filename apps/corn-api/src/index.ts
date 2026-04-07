@@ -9,7 +9,7 @@ import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 // Read version from version.json (single source of truth)
-let APP_VERSION = '0.2.1'
+let APP_VERSION = '0.3.0'
 try {
   const __dirname = dirname(fileURLToPath(import.meta.url))
   const versionPath = resolve(__dirname, '..', '..', '..', 'version.json')

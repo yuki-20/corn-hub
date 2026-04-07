@@ -583,12 +583,33 @@ Configure in `.agent/workflows/corn-quality-gates.md`.
 
 ## Installation
 
+### One-Command Installer (Recommended)
+
+```bash
+npx corn-install
+```
+
+The interactive installer will:
+1. Check for Docker, Node.js, Git, pnpm
+2. Install missing dependencies (with your permission)
+3. Clone the Corn Hub repository
+4. Configure Voyage AI API key for embeddings
+5. Build and start the Docker stack
+6. Configure your IDE (Antigravity, Claude Code, Cursor, VS Code, Codex, Windsurf)
+7. Verify all 18 MCP tools are working
+
+After installation, run the **live monitor dashboard**:
+
+```bash
+npx corn-install monitor
+```
+
 ### Prerequisites
 - **Node.js** 22+
 - **pnpm** 10+
 - **Docker** (required for running the full stack)
 
-### Quick Start
+### Quick Start (Manual)
 
 ```bash
 # Clone

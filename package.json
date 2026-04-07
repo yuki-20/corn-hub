@@ -1,6 +1,6 @@
 {
   "name": "scalpel-mcp",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "private": true,
   "description": "ScalpelMCP — Surgical AI Agent Intelligence Platform with persistent memory, knowledge base, and quality enforcement",
   "author": "yuki-20 <yuki-20@users.noreply.github.com>",
