@@ -1,6 +1,5 @@
 import { Hono } from 'hono'
 import os from 'node:os'
-import { execFileSync } from 'node:child_process'
 
 export const systemRouter = new Hono()
 
@@ -24,12 +23,17 @@ function getCpuUsage(): { percent: number; cores: number; model: string; loadAvg
   }
 }
 
-function getContainerStats(): Array<{ name: string; status: string; cpu: string; memory: string }> {
+async function getContainerStats(): Promise<Array<{ name: string; status: string; cpu: string; memory: string }>> {
   try {
-    const psOutput = execFileSync('docker', [
-      'ps', '-a', '--filter', 'name=corn-',
-      '--format', '{{.Names}}|{{.State}}|{{.Status}}|{{.Image}}',
-    ], { timeout: 5000, encoding: 'utf-8' }).trim()
+    const { promisify } = await import('node:util')
+    const { exec } = await import('node:child_process')
+    const execAsync = promisify(exec)
+
+    const { stdout } = await execAsync(
+      'docker ps -a --filter name=corn- --format "{{.Names}}|{{.State}}|{{.Status}}|{{.Image}}"',
+      { timeout: 5000, encoding: 'utf-8' },
+    )
+    const psOutput = stdout.trim()
 
     if (!psOutput) return []
 
@@ -49,7 +53,7 @@ systemRouter.get('/metrics', async (c) => {
   const memPercent = Math.round((usedMem / totalMem) * 100)
 
   const cpu = getCpuUsage()
-  const containers = getContainerStats()
+  const containers = await getContainerStats()
 
   const networkInterfaces = os.networkInterfaces()
   const primaryIp = Object.values(networkInterfaces)

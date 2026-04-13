@@ -77,7 +77,7 @@ export function registerHealthTools(server: McpServer, env: McpEnv) {
             text: JSON.stringify(
               {
                 status: coreOk ? 'healthy' : 'degraded',
-                version: env.MCP_SERVER_VERSION || '0.1.0',
+                version: env.MCP_SERVER_VERSION || '0.3.0',
                 services,
                 embeddingModel: process.env['MEM9_EMBEDDING_MODEL'] || 'voyage-code-3',
                 embeddingBase: process.env['OPENAI_API_BASE'] || 'https://api.voyageai.com/v1',

@@ -1,0 +1,39 @@
+{
+  "name": "corn-install",
+  "version": "0.4.0",
+  "description": "One-command installer for Corn Hub MCP — AI Agent Intelligence Platform",
+  "author": "yuki-20 <yuki-20@users.noreply.github.com>",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "corn-install": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "npx tsc",
+    "dev": "npx tsx src/index.ts",
+    "typecheck": "npx tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "keywords": [
+    "corn-hub",
+    "mcp",
+    "model-context-protocol",
+    "ai-agent",
+    "installer",
+    "cli"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yuki-20/corn-hub.git",
+    "directory": "cli/corn-install"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0"
+  }
+}

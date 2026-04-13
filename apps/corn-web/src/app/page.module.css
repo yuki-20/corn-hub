@@ -25,6 +25,79 @@
 .serviceDot { display: flex; align-items: center; gap: var(--space-2); }
 .serviceName { font-size: 0.85rem; color: var(--text-secondary); }
 
+/* ─── Token Savings Section ─────────────────────────────── */
+.savingsGrid {
+  display: grid; grid-template-columns: 340px 1fr; gap: var(--space-6);
+}
+@media (max-width: 900px) { .savingsGrid { grid-template-columns: 1fr; } }
+
+.savingsCard {
+  text-align: center;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.06) 0%, rgba(245, 158, 11, 0.03) 100%);
+  border-color: rgba(251, 191, 36, 0.15);
+}
+.savingsCard:hover { border-color: rgba(251, 191, 36, 0.4); }
+
+.savingsHeader {
+  display: flex; align-items: center; justify-content: center; gap: var(--space-2);
+  margin-bottom: var(--space-3); color: var(--text-secondary); font-size: 0.85rem;
+}
+.savingsIcon { font-size: 1.2rem; }
+.savingsTitle { font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+
+.savingsBigNumber {
+  font-size: 2.8rem; font-weight: 800;
+  background: var(--gradient-gold); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  line-height: 1.1; margin-bottom: var(--space-1);
+}
+.savingsSubtext { color: var(--text-muted); font-size: 0.8rem; margin-bottom: var(--space-5); }
+
+.savingsMetrics {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3);
+  padding-top: var(--space-4); border-top: 1px solid var(--border-subtle);
+}
+.savingsMetric { text-align: center; }
+.savingsMetricValue { display: block; font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+.savingsMetricLabel { display: block; font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+
+/* ─── Top Tools ─────────────────────────────────────────── */
+.topToolsCard {
+  padding: 0; overflow: hidden;
+}
+.topToolsHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  font-weight: 600; font-size: 0.95rem;
+  border-bottom: 1px solid var(--border-subtle);
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.04) 0%, transparent 100%);
+}
+.topToolsList { }
+.topToolRow {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.15s ease;
+}
+.topToolRow:last-child { border-bottom: none; }
+.topToolRow:hover { background: var(--bg-card-hover); }
+
+.topToolIcon { font-size: 1rem; width: 24px; text-align: center; flex-shrink: 0; }
+.topToolInfo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.topToolName { font-size: 0.82rem; font-weight: 500; color: var(--corn-gold); }
+.topToolStats { display: flex; gap: var(--space-3); align-items: center; flex-shrink: 0; }
+.topToolCalls { font-size: 0.85rem; font-weight: 700; color: var(--text-primary); }
+.topToolLatency { font-size: 0.75rem; color: var(--text-muted); }
+
+/* ─── Progress Bar ──────────────────────────────────────── */
+.progressTrack {
+  height: 4px; width: 100%; background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px; overflow: hidden;
+}
+.progressFill {
+  height: 100%; border-radius: 2px;
+  transition: width 0.4s ease-out;
+}
+
 /* Two Column */
 .twoCol { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); }
 @media (max-width: 900px) { .twoCol { grid-template-columns: 1fr; } }
@@ -41,6 +114,11 @@
 .intelStat { text-align: center; }
 .intelValue { display: block; font-size: 1.3rem; font-weight: 700; }
 .intelLabel { display: block; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; }
+.intelFooter {
+  margin-top: var(--space-3); padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.75rem; color: var(--text-muted); text-align: center;
+}
 
 /* Activity */
 .activityCard { padding: 0; overflow: hidden; }
@@ -59,6 +137,17 @@
 .activityMeta { font-size: 0.75rem; color: var(--text-muted); }
 .activityRight { display: flex; align-items: center; gap: var(--space-3); }
 .activityTime { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
+
+/* Session Rows */
+.sessionRow {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.sessionRow:last-child { border-bottom: none; }
+.sessionInfo { flex: 1; min-width: 0; }
+.sessionAgent { font-weight: 600; font-size: 0.85rem; color: var(--corn-gold); display: block; }
+.sessionTask { font-size: 0.78rem; color: var(--text-muted); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px; }
 
 /* Gauge */
 .gaugeCard { text-align: center; padding: var(--space-4); }

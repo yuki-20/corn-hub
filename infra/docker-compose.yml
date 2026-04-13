@@ -53,13 +53,12 @@ services:
       NODE_ENV: production
       DATABASE_PATH: /app/data/corn.db
       QDRANT_URL: http://qdrant:6333
+      MCP_URL: http://corn-mcp:8317
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       # Using Voyage AI by default for code embeddings
       MEM9_EMBEDDING_MODEL: ${MEM9_EMBEDDING_MODEL:-voyage-code-3}
-    depends_on:
-      qdrant:
-        condition: service_healthy
+    depends_on: []
     deploy:
       resources:
         limits:
@@ -91,10 +90,11 @@ services:
       MCP_SERVER_NAME: "corn-hub"
       MCP_SERVER_VERSION: "0.1.0"
       API_KEYS: ${MCP_API_KEYS:-}
+      OPENAI_API_BASE: ${OPENAI_API_BASE:-https://api.voyageai.com/v1}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      MEM9_EMBEDDING_MODEL: ${MEM9_EMBEDDING_MODEL:-voyage-code-3}
     depends_on:
       corn-api:
-        condition: service_healthy
-      qdrant:
         condition: service_healthy
     deploy:
       resources:
@@ -127,7 +127,7 @@ services:
         limits:
           memory: 128M
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ > /dev/null || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3

@@ -208,28 +208,84 @@ code, pre {
 }
 .input::placeholder { color: var(--text-muted); }
 
-/* ─── Tables ───────────────────────────────────────────── */
+/* ─── Tables (Ultra Premium Aesthetics) ──────────────────── */
+.table-container {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  position: relative;
+  background: rgba(26, 31, 53, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 32px rgba(251, 191, 36, 0.02), 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
 .table {
   width: 100%;
-  border-collapse: collapse;
-}
-.table th {
+  border-collapse: separate;
+  border-spacing: 0;
   text-align: left;
-  padding: var(--space-3) var(--space-4);
-  color: var(--text-muted);
-  font-weight: 500;
-  font-size: 0.75rem;
+  font-family: var(--font-sans);
+}
+
+.table th {
+  padding: var(--space-4);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.785rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid var(--border);
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid rgba(251, 191, 36, 0.15);
+  background: linear-gradient(180deg, rgba(26, 31, 53, 0.9) 0%, rgba(15, 21, 37, 0.95) 100%);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
+
 .table td {
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: 0.875rem;
+  padding: var(--space-4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: transparent;
 }
-.table tr:hover td {
-  background: var(--bg-card-hover);
+
+.table tr {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover td {
+  background: rgba(251, 191, 36, 0.06);
+  color: #fff;
+}
+
+.table tbody tr:hover {
+  transform: scale(1.002) translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
+.table tbody tr:hover td:first-child {
+  border-left: 2px solid var(--corn-gold);
+}
+
+/* Pulsing highlight for active/thinking rows */
+.table-row-active {
+  animation: bgPulse 2s infinite ease-in-out;
+}
+
+@keyframes bgPulse {
+  0% { background: rgba(59, 130, 246, 0.05); }
+  50% { background: rgba(59, 130, 246, 0.15); box-shadow: 0 0 15px rgba(59, 130, 246, 0.2); }
+  100% { background: rgba(59, 130, 246, 0.05); }
 }
 
 /* ─── Grade Colors ─────────────────────────────────────── */

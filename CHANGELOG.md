@@ -1,44 +1,67 @@
 # Changelog
 
-All notable changes to Corn Hub will be documented in this file.
+## [0.4.0] - 2026-04-13
 
-## [0.1.1] — 2026-03-28
+### Added
 
-### 🐛 Bug Fixes
+- **Interactive CLI Shell** - Replaced linear 14-step installer with persistent interactive menu
+  - 10-option main menu: Setup, Dashboard, Projects, API Keys, Sessions, Quality, Knowledge, Settings, Live Monitor, Exit
+  - Graceful error handling - CLI never crashes on missing dependencies
+  - Full screen redraw on menu return for clean navigation
+  
+- **Clawd-style Mascot** - Added animated corn mascot inspired by Claude Code's Clawd character
+  - Block-character mascot using Claude's orange palette `rgb(215,119,87)`
+  - Two poses: `default` (arms at sides) and `happy` (arms up, shown on startup)
+  - Mascot renders alongside app info in CondensedLogo layout
 
-- **Docker build: missing `shared-mem9` in MCP Dockerfile** — `corn-mcp` depends on `@corn/shared-mem9` but the Dockerfile never copied it; added to all stages (deps, prod-deps, runner, symlinks, metadata)
-- **Docker build: broken `.bin` symlinks with pnpm hoisting** — `pnpm install` with `node-linker=hoisted` creates broken per-package `node_modules/.bin/tsc` symlinks inside Docker; fixed by removing broken `.bin` dirs before build and using `npx tsc` to resolve from root
-- **Docker build: workspace glob mismatch** — `pnpm-workspace.yaml` uses `apps/*`/`packages/*` globs but Dockerfiles only include a subset of packages; now generates a scoped workspace yaml per Dockerfile to prevent resolution errors
-- **Docker build: invalid COPY with shell redirect** — `COPY ... 2>/dev/null || true` is invalid Dockerfile syntax; replaced with `RUN cp` in builder stage
-- **Production module resolution** — `shared-types` and `shared-utils` had `"main": "./src/index.ts"` pointing to TypeScript source; changed to `"./dist/index.js"` so compiled output is resolved in production containers
-- **Embedding fallback** — MCP server now uses local hash-based embedding when external API key is invalid, ensuring memory/knowledge tools remain functional
+- **Claude Code-style Spinner** - Updated loading animations
+  - Ping-pong symbol sequence: `· ✢ * ✶ ✻ ✽` (forward then reverse)
+  - 50ms frame rate with Claude orange color
+  - Context-aware thinking messages
 
-### 🔧 Infrastructure
+- **API Keys CRUD** - Full interactive API key management
+  - Create keys via POST to API with instant MCP propagation
+  - Delete keys with immediate revocation
+  - View/Edit Voyage AI key (OPENAI_API_KEY) directly from CLI
+  - Works offline: env config editing always available, DB operations gracefully degrade
+  - Real-time environment config display with masked key preview
 
-- All package build scripts changed from `tsc` to `npx tsc` for Docker compatibility
-- All three Dockerfiles (`corn-api`, `corn-mcp`, `corn-web`) updated with scoped workspace approach and `.bin` cleanup
-- Full Docker Compose stack verified: Qdrant, corn-api, corn-mcp, corn-web, Watchtower all healthy
+- **Dashboard Data Screens** - Seven new data navigation screens
+  - Dashboard overview with token savings, quality scores, knowledge stats
+  - Projects, Sessions, Quality Reports, Knowledge Base viewers
+  - Settings screen with system info, service health, environment variables
 
-## [0.1.0] — 2026-03-28
+### Fixed
 
-### 🐛 Bug Fixes
+- **start.cmd instant crash** - Script no longer crashes when Docker is not installed
+  - Added Docker availability check with automatic Node.js fallback
+  - Default action (double-click) now launches interactive CLI instead of Docker
+  - Added `pause` after every exit path so CMD window never closes silently
+  - Added `chcp 65001` for UTF-8 support in Node.js output
 
-- **SQL injection** in `usage.ts` and `analytics.ts` — user-supplied `days` param was string-interpolated into SQL; now uses parameterized queries (`3852d78`)
-- **Route conflict** — both `metricsRouter` and `analyticsRouter` were mounted on `/api/metrics`; analytics moved to `/api/analytics` (`3852d78`)
-- **ESM `require()` calls** — replaced CommonJS `require('child_process')` in `system.ts` and `require('node:crypto')` in `shared-utils` with proper ESM imports (`3852d78`)
-- **TypeScript parameter properties** — refactored `CornError` and other classes to avoid Node.js strip-only TS mode errors (`1b271e1`, `12c2ee5`)
+- **Garbled text in CMD** - Fixed Unicode/emoji rendering issues
+  - Replaced all emoji in menu items with CMD-safe colored ASCII symbols
+  - Replaced em-dashes with hyphens in batch file text
+  - Rewrote start.cmd using pure ASCII characters only
+  - start.sh updated with matching Docker check and Node.js fallback
 
-### 📝 Documentation
+- **Menu navigation** - Fixed "Back" not returning to proper main menu
+  - Main menu loop now clears screen and redraws banner on every iteration
+  - System status info refreshes on each menu display
 
-- Added MCP path setup guide and troubleshooting section (`30dac4c`)
-- Added deep mathematical token economy analysis (`d0b501f`)
+### Changed
 
-### 🎉 Initial Release
+- Banner layout: Mascot + app info side-by-side (CondensedLogo style) replaces large ASCII art block
+- Spinner color: magenta -> Claude orange `rgb(215,119,87)`
+- Spinner speed: 80ms -> 50ms
+- start.cmd: Added `local`, `cli`, `status` subcommands
+- Version bumped to 0.4.0 across all packages
 
-- **corn-api** — Hono-based REST API with SQLite (sql.js), serving dashboard data, sessions, quality reports, knowledge, projects, providers, usage, analytics, webhooks, code intel, and system metrics
-- **corn-mcp** — MCP server with 17 tools: memory, knowledge, quality, sessions, code intelligence, analytics, and change awareness — supports both Streamable HTTP and STDIO transports
-- **corn-web** — Next.js 16 dashboard with real-time health monitoring, activity feed, quality gauges, and quick-connect setup
-- **shared-mem9** — Qdrant vector DB client with OpenAI embedding provider for semantic memory and knowledge search
-- **shared-types** — Shared TypeScript interfaces for all services
-- **shared-utils** — Logger, error classes, ID generation, and utility functions
-- Docker Compose infrastructure with Qdrant, nginx, and multi-stage builds (`0bff0fc`)
+## [0.3.0] - 2026-04-08
+
+- Initial release
+- MCP server with 20 tools
+- Dashboard web UI
+- API server with SQLite
+- Docker Compose infrastructure
+- Basic CLI installer (linear flow)

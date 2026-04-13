@@ -42,7 +42,7 @@ webhooksRouter.post('/push', async (c) => {
 webhooksRouter.get('/changes', async (c) => {
   const agentId = c.req.query('agentId')
   const projectId = c.req.query('projectId')
-  const limit = Number(c.req.query('limit') || '20')
+  const limit = Math.min(100, Math.max(1, parseInt(c.req.query('limit') || '20', 10) || 20))
 
   if (!agentId || !projectId) {
     return c.json({ error: 'agentId and projectId are required' }, 400)

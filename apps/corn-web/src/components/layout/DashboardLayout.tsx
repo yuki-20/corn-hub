@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { href: '/keys', icon: '🔑', label: 'API Keys' },
   { href: '/orgs', icon: '🏢', label: 'Organizations' },
   { href: '/settings', icon: '⚙️', label: 'Settings' },
+  { href: '/setup', icon: '📖', label: 'Installation' },
 ]
 
 export default function DashboardLayout({
@@ -59,7 +60,7 @@ export default function DashboardLayout({
         </nav>
 
         <div className={styles.sidebarFooter}>
-          <span className={styles.version}>v0.1.0</span>
+          <span className={styles.version}>v0.1.2</span>
         </div>
       </aside>
 

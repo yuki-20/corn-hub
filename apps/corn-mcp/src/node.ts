@@ -6,6 +6,7 @@ function loadEnv() {
   const envPaths = [
     resolve(process.cwd(), '.env'),
     resolve(import.meta.dirname || process.cwd(), '..', '.env'),
+    resolve(import.meta.dirname || process.cwd(), '..', '..', '..', '.env'),
   ]
   for (const envPath of envPaths) {
     if (existsSync(envPath)) {

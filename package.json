@@ -1,8 +1,12 @@
 {
-  "name": "corn",
-  "version": "0.1.0",
+  "name": "scalpel-mcp",
+  "version": "0.4.0",
   "private": true,
-  "description": "AI Agent Intelligence Hub — Unified MCP gateway with persistent memory, knowledge base, and quality enforcement",
+  "description": "ScalpelMCP — Surgical AI Agent Intelligence Platform with persistent memory, knowledge base, and quality enforcement",
+  "author": "yuki-20 <yuki-20@users.noreply.github.com>",
+  "contributors": [
+    "AntiTamper <AntiTamper@users.noreply.github.com>"
+  ],
   "packageManager": "pnpm@10.32.1",
   "engines": {
     "node": ">=22",

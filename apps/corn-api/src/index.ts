@@ -4,6 +4,21 @@ import { cors } from 'hono/cors'
 import { logger as honoLogger } from 'hono/logger'
 import { createLogger } from '@corn/shared-utils'
 import { getDb } from './db/client.js'
+import { readFileSync } from 'node:fs'
+import { resolve, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+// Read version from version.json (single source of truth)
+let APP_VERSION = '0.3.0'
+try {
+  const __dirname = dirname(fileURLToPath(import.meta.url))
+  const versionPath = resolve(__dirname, '..', '..', '..', 'version.json')
+  const versionData = JSON.parse(readFileSync(versionPath, 'utf-8'))
+  APP_VERSION = versionData.version || APP_VERSION
+} catch {
+  // Fallback to default if version.json not found
+}
+export { APP_VERSION }
 import { keysRouter } from './routes/keys.js'
 import { sessionsRouter } from './routes/sessions.js'
 import { qualityRouter } from './routes/quality.js'
@@ -36,18 +51,28 @@ app.get('/health', async (c) => {
     }
   }
 
-  const qdrantUrl = process.env['QDRANT_URL'] || 'http://localhost:6333'
-  const [qdrant] = await Promise.all([
-    checkService('qdrant', `${qdrantUrl}/healthz`),
-  ])
+  // Check sqlite (our actual vector store — replaced Qdrant)
+  let sqlite: 'ok' | 'error' = 'ok'
+  try {
+    const { dbGet } = await import('./db/client.js')
+    const row = await dbGet('SELECT COUNT(*) as cnt FROM code_symbols')
+    sqlite = row ? 'ok' : 'error'
+  } catch {
+    sqlite = 'error'
+  }
+
+  const mcpUrl = process.env['MCP_URL'] || 'http://localhost:8317'
+  const mcp = await checkService('mcp', `${mcpUrl}/health`)
+
+  const allOk = sqlite === 'ok' && mcp === 'ok'
 
   return c.json({
-    status: qdrant === 'ok' ? 'ok' : 'degraded',
+    status: allOk ? 'ok' : (sqlite === 'ok' ? 'degraded' : 'error'),
     service: 'corn-api',
-    version: '0.1.0',
+    version: APP_VERSION,
     timestamp: new Date().toISOString(),
     uptime: Math.floor(process.uptime()),
-    services: { qdrant },
+    services: { sqlite, api: 'ok' as const, mcp },
   })
 })
 
@@ -72,7 +97,7 @@ app.route('/api/indexing', indexingRouter)
 app.get('/', (c) => {
   return c.json({
     name: 'Corn Dashboard API',
-    version: '0.1.0',
+    version: APP_VERSION,
     endpoints: [
       '/health',
       '/api/keys',
@@ -82,9 +107,14 @@ app.get('/', (c) => {
       '/api/projects',
       '/api/orgs',
       '/api/metrics',
+      '/api/analytics',
       '/api/providers',
       '/api/usage',
       '/api/setup',
+      '/api/webhooks',
+      '/api/intel',
+      '/api/system',
+      '/api/indexing',
     ],
   })
 })

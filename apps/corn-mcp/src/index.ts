@@ -55,7 +55,7 @@ app.get('/health', (c) => {
   return c.json({
     status: 'healthy',
     service: 'corn-mcp',
-    version: c.env.MCP_SERVER_VERSION ?? '0.1.0',
+    version: c.env.MCP_SERVER_VERSION ?? '0.3.0',
     timestamp: new Date().toISOString(),
   })
 })
@@ -90,7 +90,7 @@ app.post('/register', (c) =>
 app.get('/', (c) => {
   return c.json({
     name: 'Corn Hub MCP Server',
-    version: c.env.MCP_SERVER_VERSION ?? '0.1.0',
+    version: c.env.MCP_SERVER_VERSION ?? '0.3.0',
     mcp: '/mcp',
     health: '/health',
     tools: [
@@ -120,7 +120,7 @@ app.get('/', (c) => {
 export function createMcpServer(env: Env) {
   const server = new McpServer({
     name: env.MCP_SERVER_NAME ?? 'corn-hub',
-    version: env.MCP_SERVER_VERSION ?? '0.1.0',
+    version: env.MCP_SERVER_VERSION ?? '0.3.0',
   })
   registerHealthTools(server, env)
   registerMemoryTools(server, env)

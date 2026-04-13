@@ -181,39 +181,109 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
   readonly dimensions: number
   private apiKey: string
   private apiBase: string
-  private model: string
+  private models: string[]
+  private currentModelIndex: number
+
+  /** Current active model name */
+  get model(): string {
+    return this.models[this.currentModelIndex]
+  }
 
   constructor(
     apiKey: string,
     apiBase: string = 'https://api.openai.com/v1',
     model: string = 'text-embedding-3-small',
     dimensions: number = 1536,
+    fallbackModels?: string[],
   ) {
     this.apiKey = apiKey
     this.apiBase = apiBase.replace(/\/$/, '')
-    this.model = model
     this.dimensions = dimensions
+    this.currentModelIndex = 0
+
+    // Build model rotation list: primary model first, then fallbacks (deduped)
+    const allModels = [model, ...(fallbackModels || [])]
+    this.models = [...new Set(allModels)]
   }
 
   async embed(texts: string[]): Promise<number[][]> {
-    const res = await fetch(`${this.apiBase}/embeddings`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify({ input: texts, model: this.model }),
-    })
-    if (!res.ok) {
+    // Try each model in the rotation list
+    const startIndex = this.currentModelIndex
+    let attempts = 0
+
+    while (attempts < this.models.length) {
+      const activeModel = this.models[this.currentModelIndex]
+      
+      try {
+        const result = await this._tryEmbed(texts, activeModel)
+        return result
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        
+        // If rate-limited after all retries, rotate to next model
+        if (msg.includes('429') || msg.includes('rate') || msg.includes('RPM')) {
+          const nextIndex = (this.currentModelIndex + 1) % this.models.length
+          
+          if (nextIndex === startIndex) {
+            // We've tried all models and they're all rate-limited
+            throw new Error(
+              `All ${this.models.length} models rate-limited. Models tried: ${this.models.join(', ')}. Last error: ${msg}`
+            )
+          }
+
+          console.error(
+            `[corn-mem9] ⚡ Model ${activeModel} rate-limited → rotating to ${this.models[nextIndex]}`
+          )
+          this.currentModelIndex = nextIndex
+          attempts++
+          continue
+        }
+
+        // Non rate-limit errors should still throw immediately
+        throw err
+      }
+    }
+
+    throw new Error(`All ${this.models.length} models exhausted`)
+  }
+
+  /** Try a single model with exponential backoff retries */
+  private async _tryEmbed(texts: string[], model: string): Promise<number[][]> {
+    let retries = 3
+    let delay = 2000
+
+    while (retries >= 0) {
+      const res = await fetch(`${this.apiBase}/embeddings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({ input: texts, model }),
+      })
+
+      if (res.ok) {
+        const data = (await res.json()) as { data: { embedding: number[] }[] }
+        return data.data.map((d) => d.embedding)
+      }
+
       const text = await res.text()
-      throw new Error(`Embedding API failed: ${text}`)
+      
+      // Retry on 429 within this model's retry budget
+      if (res.status === 429 && retries > 0) {
+        console.error(`[corn-mem9] ⏳ ${model} rate-limited, retry in ${delay}ms (${retries} left)`)
+        retries--
+        await new Promise((r) => setTimeout(r, delay))
+        delay *= 2
+        continue
+      }
+      
+      throw new Error(`Embedding API failed (${model}): ${text}`)
     }
-    const data = (await res.json()) as {
-      data: { embedding: number[] }[]
-    }
-    return data.data.map((d) => d.embedding)
+    throw new Error(`Embedding API failed after retries (${model})`)
   }
 }
+
 
 // ─── SQLite Vector Store (replaces Qdrant) ──────────────
 

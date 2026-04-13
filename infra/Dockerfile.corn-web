@@ -53,7 +53,7 @@ COPY --from=builder /app/apps/corn-web/out/ /usr/share/nginx/html/
 COPY infra/nginx-dashboard.conf /etc/nginx/conf.d/default.conf
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD wget -qO- http://localhost:3000/ > /dev/null || exit 1
+  CMD wget -qO- http://127.0.0.1:3000/ > /dev/null || exit 1
 
 EXPOSE 3000
 

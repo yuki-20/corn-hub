@@ -8,3 +8,6 @@ dist/
 .next/
 out/
 data/
+.agent/
+.claude/
+*.log
