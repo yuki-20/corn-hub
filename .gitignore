@@ -11,3 +11,8 @@ data/
 .agent/
 .claude/
 *.log
+autolaunch-services.*
+autolaunch-task.xml
+start-corn-api.bat
+corn-api-service.vbs
+package-lock.json

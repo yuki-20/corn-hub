@@ -18,6 +18,7 @@ import { configureEnvironment } from './config.js';
 import { getAvailableIdes, configureIdes } from './ide.js';
 import { verifyInstallation } from './verify.js';
 import { startMonitor } from './monitor.js';
+import { showAutolaunchMenu } from './autolaunch.js';
 import {
   showDashboard,
   showProjects,
@@ -92,6 +93,7 @@ async function main(): Promise<void> {
       { key: '7', label: `${ui.colorize('>', 'cyan')} Knowledge`, hint: 'Knowledge base' },
       { key: '8', label: `${ui.colorize('>', 'cyan')} Settings`, hint: 'Services, env, MCP tools' },
       { key: '9', label: `${ui.colorize('>', 'cyan')} Live Monitor`, hint: 'Full-screen real-time dashboard' },
+      { key: 'a', label: `${ui.colorize('>', 'cyan')} Autolaunch`, hint: 'Start services with Windows' },
       { key: '0', label: `${ui.colorize('>', 'red')} Exit`, hint: 'Quit Corn Hub CLI' },
     ]);
 
@@ -126,6 +128,9 @@ async function main(): Promise<void> {
           mcpUrl: process.env['MCP_URL'] || 'http://localhost:8317',
           interval: 2000,
         });
+        break;
+      case 'a':
+        await showAutolaunchMenu(process.cwd());
         break;
       case '0':
       case 'q':

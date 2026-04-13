@@ -4,6 +4,7 @@
 
 import * as ui from './ui.js';
 import { readExistingEnv, updateEnvValue, maskKey } from './config.js';
+import { getAutolaunchStatus } from './autolaunch.js';
 
 const DEFAULT_API = 'http://localhost:4000';
 const DEFAULT_MCP = 'http://localhost:8317';
@@ -580,13 +581,21 @@ export async function showSettings(): Promise<void> {
   ui.step(0, 0, '⚙️  Settings & Services');
 
   // System info (always available, no API needed)
+  const alStatus = getAutolaunchStatus();
+  const alDisplay = !alStatus.supported
+    ? ui.colorize('— N/A (Windows only)', 'dim')
+    : alStatus.enabled
+      ? ui.colorize('✓ Enabled', 'green')
+      : ui.colorize('✗ Disabled', 'dim');
+
   ui.blank();
   ui.box('System Information', [
-    `Node.js:     ${process.version}`,
-    `Platform:    ${process.platform} (${process.arch})`,
-    `CWD:         ${process.cwd()}`,
-    `API URL:     ${apiUrl()}`,
-    `MCP URL:     ${mcpUrl()}`,
+    `Node.js:      ${process.version}`,
+    `Platform:     ${process.platform} (${process.arch})`,
+    `CWD:          ${process.cwd()}`,
+    `API URL:      ${apiUrl()}`,
+    `MCP URL:      ${mcpUrl()}`,
+    `Autolaunch:   ${alDisplay}`,
   ]);
 
   // Check services
